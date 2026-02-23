@@ -1,0 +1,4 @@
+Pour compiler le makefile avec mingw : 
+
+    mingw32-make
+

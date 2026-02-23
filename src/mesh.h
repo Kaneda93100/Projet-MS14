@@ -83,8 +83,8 @@ int msh_neighborsQ2(Mesh* Msh); // build TriVoi with the naive quadratic approac
 //--- A provided simple hash table data structure
 typedef struct hash_table {
   int    SizHead; // Maximum key value, the key is in [0,SizHead-1]
-  int    NbrObj; // Number of objects in the hash table
-  int    NbrMaxObj; // Maximum number of objects that can be store in the hash tab
+  int    NbrObj; // Number of objects in the hash table (courant)
+  int    NbrMaxObj; // Maximum number of objects that can be store in the hash tab (nombre max)
   int*   Head; // Head[key%(SizHead)] = link to the first object having this key in the LstObj list
   int5d* LstObj; // List of objects in the hash table
 

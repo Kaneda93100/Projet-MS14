@@ -2,14 +2,12 @@
 
 int main(int argc, char* argv[])
 {
+
+  printf("Bad mozerfucker\n");
+
   int    iTri, iVer;
   double to, ti;
-
-  if (argc < 2) {
-    printf(" usage : mesh file \n");
-    return 0;
-  }
-
+  
   //--- read a mesh
   to        = clock();
   Mesh* Msh = msh_read(argv[1], 0);

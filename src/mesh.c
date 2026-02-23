@@ -2,7 +2,7 @@
 
 int tri2edg[3][2] = { { 1, 2 }, { 2, 0 }, { 0, 1 } };
 
-Mesh* msh_init()
+Mesh* msh_init() // Ecrite
 {
   Mesh* Msh = malloc(sizeof(Mesh));
   if (!Msh) return NULL;
@@ -43,7 +43,7 @@ Mesh* msh_init()
   return Msh;
 }
 
-Mesh* msh_read(char* file, int readEfr)
+Mesh* msh_read(char* file, int readEfr) // Ecrite
 {
   char   InpFil[1024];
   float  bufFlt[2];
@@ -144,7 +144,7 @@ Mesh* msh_read(char* file, int readEfr)
   return Msh;
 }
 
-double* sol_read(char* file, int mshDim, int mshNbrSol)
+double* sol_read(char* file, int mshDim, int mshNbrSol) // Ecrite
 {
   char   InpFil[1024];
   int    FilVer, SolTyp, NbrTyp, SolSiz, TypTab[GmfMaxTyp];
@@ -225,19 +225,34 @@ double* sol_read(char* file, int mshDim, int mshNbrSol)
   return sol;
 }
 
-int msh_boundingbox(Mesh* Msh)
+int msh_boundingbox(Mesh* Msh) // Ecrite
 {
   int1d iVer;
+  double Mx,My = 0;
+  double mx, my = 0;
 
   //--- compute bounding box
   for (iVer = 1; iVer <= Msh->NbrVer; iVer++) {
-    // TODO: Set Msh->Box
+      double tempx = Msh->Crd[iVer][0];
+      double tempy = Msh->Crd[iVer][1]; 
+
+      //Affectation du max
+      if(Mx < tempx){Mx = tempx;}
+      if(My < tempy){My = tempy;}
+
+      //Affectation du min
+      if(mx > tempx){mx = tempx;}
+      if(my > tempy){my = tempy;}
   }
+
+  Msh->Box[0] = Mx; Msh->Box[1] = mx; 
+  Msh->Box[2] = My; Msh->Box[3] = my;
+
 
   return 1;
 }
 
-int msh_write(Mesh* Msh, char* file)
+int msh_write(Mesh* Msh, char* file) // Ecrite
 {
   int iVer, iTri, iEfr;
   int FilVer = 2;
@@ -270,7 +285,7 @@ int msh_write(Mesh* Msh, char* file)
   return 1;
 }
 
-int msh_neighborsQ2(Mesh* Msh)
+int msh_neighborsQ2(Mesh* Msh) // Ecrite
 {
   int iTri, iEdg, jTri, jEdg, iVer1, iVer2, jVer1, jVer2;
 
@@ -293,9 +308,17 @@ int msh_neighborsQ2(Mesh* Msh)
         for (jEdg = 0; jEdg < 3; jEdg++) {
           jVer1 = Msh->Tri[jTri][tri2edg[jEdg][0]];
           jVer2 = Msh->Tri[jTri][tri2edg[jEdg][1]];
-
-          // TODO: compare the 4 points
-          //       set the neighbors Msh->TriVoi if both edges match
+          
+          if((jVer1 == iVer1 && jVer2 == iVer2) || (jVer1 == iVer2 && jVer2 == iVer1))
+          {
+            Msh->TriVoi[iTri][iEdg] = jTri;
+            Msh->TriVoi[jTri][jEdg] = iTri;
+            break;
+          }
+          else
+          {
+            continue;
+          }
         }
       }
     }
@@ -304,7 +327,7 @@ int msh_neighborsQ2(Mesh* Msh)
   return 1;
 }
 
-int msh_neighbors(Mesh* Msh)
+int msh_neighbors(Mesh* Msh) // A écrire
 {
   int iTri, iEdg, iVer1, iVer2;
 
@@ -315,61 +338,109 @@ int msh_neighbors(Mesh* Msh)
 
   //--- initialize HashTable and set the hash table
 
+  HashTable* hsh = hash_init(2*Msh->NbrVer, Msh->NbrVer);
+
+  //--- Construction de la liste de tête (fonction de hash : iVer1 + iVer2)
+  for(int i = 0; i < 2*Msh->NbrVer; i++){
+    hsh->Head[i] = i;
+    }
+  //--- Ajout des éléments de la liste
+  for(iTri = 1; iTri <= Msh->NbrTri; iTri++){
+    for(iEdg = 0; iEdg < 3; iEdg++){
+      iVer1 = Msh->Tri[iTri][tri2edg[iEdg][0]];
+      iVer2 = Msh->Tri[iTri][tri2edg[iEdg][1]];
+      hash_add(hsh, iVer1, iVer2, iTri);
+    }
+  }
+
   // TODO
 
   //--- Compute the neighbors using the hash table
   for (iTri = 1; iTri <= Msh->NbrTri; iTri++) {
     for (iEdg = 0; iEdg < 3; iEdg++) {
       iVer1 = Msh->Tri[iTri][tri2edg[iEdg][0]];
-      iVer2 = Msh->Tri[iTri][tri2edg[iEdg][1]];
+      iVer2 = Msh->Tri[iTri][tri2edg[iEdg][1]]; 
 
       // TODO:
       // compute the key : iVer1+iVer2
       // do we have objects as that key   hash_find () */
       //  if yes ===> look among objects and potentially update TriVoi */
       //  if no  ===> add to hash table   hash_add()   */
+
+      int key = iVer1 + iVer2;
+      if(hash_find(hsh, iVer1, hsh) == 0){hash_add()}
     }
   }
 
   return 1;
 }
 
-HashTable* hash_init(int SizHead, int NbrMaxObj)
+HashTable* hash_init(int SizHead, int NbrMaxObj) //Ecrite
 {
-  HashTable* hsh = NULL;
+  HashTable* hsh = malloc(sizeof(HashTable)); 
 
-  // to be implemented
+  hsh->SizHead = SizHead; 
+  hsh->NbrMaxObj = NbrMaxObj;
 
-  // allocate hash table
-
-  // initialize hash table
-
-  // allocate Head, LstObj
+  hsh->Head = malloc(sizeof(int)*SizHead);
+  hsh->LstObj = malloc(sizeof(int5d)*NbrMaxObj);
 
   return hsh;
 }
 
-int hash_find(HashTable* hsh, int iVer1, int iVer2)
-{
+int hash_find(HashTable* hsh, int iVer1, int iVer2) //Ecrite
+{ 
+  int5d* L = hsh->LstObj;
 
-  // to be implemented
+  for(int i = 0; i < hsh->NbrMaxObj; i++)
+  {
+    if(L[i][0] == iVer1 && L[i][1] == iVer2)
+    {
+      return i;
+    }
+    else
+    {
+      continue;
+    }
+  }
 
-  // return the id found (in LstObj ), if 0 the object is not in the list
-
+  printf("L'arête n'existe pas.\n");
   return 0;
 }
 
-int hash_add(HashTable* hsh, int iVer1, int iVer2, int iTri)
+int hash_add(HashTable* hsh, int iVer1, int iVer2, int iTri) //Ecrite
 {
+  if(hsh->NbrObj + 1 > hsh->NbrMaxObj)
+  {
+    printf("On ne peut pas ajouter d'élément à la liste.\n");
+    return 0;
+  } 
 
-  // to be implemented
+  if(hash_find(hsh, iVer1, iVer2) == 0)
+  {
+    printf("L'arête n'existe pas.\n");
+    int key = iVer1 + iVer2;
+    // Création du nouvel élément (placé en queu de liste)
+    int5d new;
+    new[0] = iVer1;
+    new[1] = iVer2;
+    new[2] = iTri;
+    new[3] = -1;
+    new[4] = 0;
 
-  // ===> add this entry in the hash tab
-
+    int k = key;
+    while(hsh->LstObj[k][4]!=0){k=hsh->LstObj[k][4];}
+    hsh->LstObj[k][4] = hsh->NbrMaxObj + 1;
+    printf("L'élément a bien été ajouté.\n");
+  }
+  else 
+  {
+    printf("L'arête existe déjà.\n");
+  }
   return 0;
 }
 
-int hash_suppr(HashTable* hsh, int iVer1, int iVer2, int iTri)
+int hash_suppr(HashTable* hsh, int iVer1, int iVer2, int iTri) //Optionnelle
 {
 
   // to be implemented
