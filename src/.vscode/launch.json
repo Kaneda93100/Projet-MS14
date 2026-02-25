@@ -5,7 +5,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}\\mesh.exe",
-            "args": [],
+            "args": ["../data/carre_debug.mesh"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],

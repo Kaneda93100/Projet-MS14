@@ -80,6 +80,8 @@ int msh_boundingbox(Mesh* Msh); // compute the bouding box of the mesh
 int msh_neighbors(Mesh* Msh); // build TriVoi with a hash table
 int msh_neighborsQ2(Mesh* Msh); // build TriVoi with the naive quadratic approach
 
+
+
 //--- A provided simple hash table data structure
 typedef struct hash_table {
   int    SizHead; // Maximum key value, the key is in [0,SizHead-1]
@@ -96,6 +98,10 @@ typedef struct hash_table {
 
 //--- Implementing the following function should be necessary
 HashTable* hash_init(int SizHead, int NbrMaxObj); // alloc and set htable ==> allocate Head, LstObj
+
+//--- Affichage d'une table
+void cout_hash_head(HashTable* hsh, int Key);
+void cout_hash(HashTable* hsh);
 
 int hash_find(HashTable* hsh, int iVer1, int iVer2); // return the id found (in LstObj ), if 0 the object is not in the list
 int hash_add(HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> add this entry in the hash tab

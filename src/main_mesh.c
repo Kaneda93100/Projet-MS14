@@ -5,6 +5,7 @@ int main(int argc, char* argv[])
 
   printf("Bad mozerfucker\n");
 
+  
   int    iTri, iVer;
   double to, ti;
   
@@ -22,14 +23,20 @@ int main(int argc, char* argv[])
 
   //--- create neigbhors Q2 version
   to = clock();
-  msh_neighborsQ2(Msh);
+  msh_neighbors(Msh);
   ti = clock();
+  
+  return 0;
+
   printf("  time q2 neigh.        %lg (s) \n", (ti - to) / CLOCKS_PER_SEC);
 
   //--- create neigbhors with hash table
   to = clock();
   msh_neighbors(Msh);
   ti = clock();
+
+
+
   printf("  time hash tab neigh.  %lg (s) \n", (ti - to) / CLOCKS_PER_SEC);
 
   //--- TODO: compute mesh quality

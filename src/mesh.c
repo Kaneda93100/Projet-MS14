@@ -245,8 +245,10 @@ int msh_boundingbox(Mesh* Msh) // Ecrite
       if(my > tempy){my = tempy;}
   }
 
-  Msh->Box[0] = Mx; Msh->Box[1] = mx; 
-  Msh->Box[2] = My; Msh->Box[3] = my;
+  Msh->Box[0] = Mx; 
+  Msh->Box[1] = mx; 
+  Msh->Box[2] = My; 
+  Msh->Box[3] = my;
 
 
   return 1;
@@ -336,14 +338,9 @@ int msh_neighbors(Mesh* Msh) // A écrire
   if (Msh->TriVoi == NULL)
     Msh->TriVoi = calloc((Msh->NbrTri + 1), sizeof(int3d));
 
-  //--- initialize HashTable and set the hash table
-
+  //--- initialize HashTable and set the hash table 
   HashTable* hsh = hash_init(2*Msh->NbrVer, Msh->NbrVer);
 
-  //--- Construction de la liste de tête (fonction de hash : iVer1 + iVer2)
-  for(int i = 0; i < 2*Msh->NbrVer; i++){
-    hsh->Head[i] = i;
-    }
   //--- Ajout des éléments de la liste
   for(iTri = 1; iTri <= Msh->NbrTri; iTri++){
     for(iEdg = 0; iEdg < 3; iEdg++){
@@ -361,18 +358,28 @@ int msh_neighbors(Mesh* Msh) // A écrire
       iVer1 = Msh->Tri[iTri][tri2edg[iEdg][0]];
       iVer2 = Msh->Tri[iTri][tri2edg[iEdg][1]]; 
 
-      // TODO:
-      // compute the key : iVer1+iVer2
-      // do we have objects as that key   hash_find () */
-      //  if yes ===> look among objects and potentially update TriVoi */
-      //  if no  ===> add to hash table   hash_add()   */
-
       int key = iVer1 + iVer2;
-      if(hash_find(hsh, iVer1, hsh) == 0){hash_add()}
+      int id = hash_find(hsh, iVer1, iVer2);
+      if(id == 0){hash_add(hsh, iVer1, iVer2, iTri);}
+      else {
+        int k = key;
+        while(hsh->LstObj[k][4] != id){k=hsh->LstObj[k][4];}
+        if(hsh->LstObj[k][2] != -1 && hsh->LstObj[k][3] != -1)
+        {
+          printf("Erreur : les deux voisins sont déjà construit, il y a un soucis ...\n");
+          printf("Clé visité : %d \n", key);
+          printf("Id de l'arête défectueuse : %d \n", id);
+          printf("Id du triangle qui casse les **** : %d \n", iTri);
+
+          exit(-1);
+        }
+        if(hsh->LstObj[k][2] == -1){hsh->LstObj[k][2] = iTri;}
+        if(hsh->LstObj[k][3] == -1){hsh->LstObj[k][3] = iTri;}
+      }
     }
   }
 
-  return 1;
+  return 0;
 }
 
 HashTable* hash_init(int SizHead, int NbrMaxObj) //Ecrite
@@ -381,64 +388,102 @@ HashTable* hash_init(int SizHead, int NbrMaxObj) //Ecrite
 
   hsh->SizHead = SizHead; 
   hsh->NbrMaxObj = NbrMaxObj;
+  hsh->NbrObj = 0;
 
   hsh->Head = malloc(sizeof(int)*SizHead);
+  for(int i = 0; i < SizHead; i++){hsh->Head[i] = 0;}
   hsh->LstObj = malloc(sizeof(int5d)*NbrMaxObj);
 
   return hsh;
 }
 
-int hash_find(HashTable* hsh, int iVer1, int iVer2) //Ecrite
-{ 
-  int5d* L = hsh->LstObj;
-
-  for(int i = 0; i < hsh->NbrMaxObj; i++)
+void hash_cout_head(HashTable* hsh, int Key)
+{  
+  printf("Affichage de la liste associée à la clé %d\n", Key);
+  
+  int i = 1;
+  int k = Key;
+  while(k != 0)
   {
-    if(L[i][0] == iVer1 && L[i][1] == iVer2)
-    {
-      return i;
-    }
-    else
-    {
-      continue;
-    }
+    printf("%d : %d \t %d \t %d \t %d \t %d \n", i, hsh->LstObj[k][0], hsh->LstObj[k][1], hsh->LstObj[k][2], hsh->LstObj[k][3], hsh->LstObj[k][4]);
+    k = hsh->LstObj[k][4];
+    i++;
   }
 
-  printf("L'arête n'existe pas.\n");
-  return 0;
+  return;
+}
+
+void hash_cout(HashTable* hsh)
+{
+  printf("Affichage de la table de hachage.\n");
+  for(int i = 0; i < hsh->SizHead; i++)
+  {
+    if(i == 0){printf("\n");}
+    printf("\n");
+    hash_cout_head(hsh, hsh->Head[i]);
+    printf("\n");
+  }
+
+  return;
+}
+
+int hash_find(HashTable* hsh, int iVer1, int iVer2) //Ecrite
+{ 
+  int k = iVer1+iVer2;
+
+  if(hsh->NbrObj == 0){
+    printf("Table vide.\n");
+    return 0; 
+  }
+
+  while(k > 0){
+    if((hsh->LstObj[k][0] == iVer1 && hsh->LstObj[k][1] == iVer2) || (hsh->LstObj[k][0] == iVer2 && hsh->LstObj[k][1] == iVer1)){return k;} // Arête trouvée
+    else{k = hsh->LstObj[k][4];}
+  }
+  return 0; // Arête non trouvée
 }
 
 int hash_add(HashTable* hsh, int iVer1, int iVer2, int iTri) //Ecrite
 {
   if(hsh->NbrObj + 1 > hsh->NbrMaxObj)
   {
-    printf("On ne peut pas ajouter d'élément à la liste.\n");
+    printf("La liste est complète. Pas d'ajout.\n");
     return 0;
   } 
 
-  if(hash_find(hsh, iVer1, iVer2) == 0)
+  if(hsh->Head[iVer1+iVer2] !=0) // Tête non-vide (Les têtes sont toutes initialisées à 0)
   {
-    printf("L'arête n'existe pas.\n");
-    int key = iVer1 + iVer2;
-    // Création du nouvel élément (placé en queu de liste)
-    int5d new;
-    new[0] = iVer1;
-    new[1] = iVer2;
-    new[2] = iTri;
-    new[3] = -1;
-    new[4] = 0;
+    if(hash_find(hsh, iVer1, iVer2) == 0)
+    {
+      // Création du nouvel élément (placé en queu de liste)
+      hsh->LstObj[hsh->NbrObj+1][0] = iVer1;
+      hsh->LstObj[hsh->NbrObj+1][1] = iVer2;
+      hsh->LstObj[hsh->NbrObj+1][2] = iTri;
+      hsh->LstObj[hsh->NbrObj+1][3] = -1;
+      hsh->LstObj[hsh->NbrObj+1][4] = 0;
+      hsh->NbrObj++;
 
-    int k = key;
-    while(hsh->LstObj[k][4]!=0){k=hsh->LstObj[k][4];}
-    hsh->LstObj[k][4] = hsh->NbrMaxObj + 1;
-    printf("L'élément a bien été ajouté.\n");
-  }
-  else 
+      //Mise à jour de la table
+      int k = iVer1+iVer2;
+      while(k!=0){k=hsh->LstObj[k][4];}
+      hsh->LstObj[k][4] = hsh->NbrMaxObj+1;
+    }
+  } 
+  else // Tête vide
   {
-    printf("L'arête existe déjà.\n");
+    hsh->Head[iVer1+iVer2] = hsh->NbrObj + 1;
+    hsh->LstObj[hsh->NbrObj+1][0] = iVer1;
+    hsh->LstObj[hsh->NbrObj+1][1] = iVer2;
+    hsh->LstObj[hsh->NbrObj+1][2] = iTri;
+    hsh->LstObj[hsh->NbrObj+1][3] = -1;
+    hsh->LstObj[hsh->NbrObj+1][4] = 0;
+    hsh->NbrObj++;
+    hash_cout_head(hsh, iVer1+iVer2);
   }
   return 0;
 }
+
+
 
 int hash_suppr(HashTable* hsh, int iVer1, int iVer2, int iTri) //Optionnelle
 {
