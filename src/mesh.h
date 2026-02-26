@@ -97,15 +97,15 @@ typedef struct hash_table {
 } HashTable;
 
 //--- Implementing the following function should be necessary
-HashTable* hash_init(int SizHead, int NbrMaxObj); // alloc and set htable ==> allocate Head, LstObj
+volatile HashTable* hash_init(int SizHead, int NbrMaxObj); // alloc and set htable ==> allocate Head, LstObj
 
 //--- Affichage d'une table
-void cout_hash_head(HashTable* hsh, int Key);
-void cout_hash(HashTable* hsh);
+void hash_cout_head(volatile HashTable* hsh, int Key);
+void hash_cout(volatile HashTable* hsh);
 
-int hash_find(HashTable* hsh, int iVer1, int iVer2); // return the id found (in LstObj ), if 0 the object is not in the list
-int hash_add(HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> add this entry in the hash tab
-int hash_suppr(HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> suppress this entry in the hash tab
+int hash_find(volatile HashTable* hsh, int iVer1, int iVer2); // return the id found (in LstObj ), if 0 the object is not in the list
+int hash_add(volatile HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> add this entry in the hash tab
+int hash_suppr(volatile HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> suppress this entry in the hash tab
 
 //--- Fonction used for adaptation
 

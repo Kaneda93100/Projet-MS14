@@ -1,6 +1,6 @@
 #
 CC=gcc
-COPTS= -g -O1 -Wall
+COPTS= -g -O0 -Wall
 
 
 mesh:	mesh.o main_mesh.o eigen.o libmesh6.o
