@@ -352,6 +352,7 @@ int msh_neighbors(Mesh* Msh) // A écrire
   }
   // TODO
   hash_cout(hsh);
+  printf("\n\n\n\n");
   //--- Compute the neighbors using the hash table
   for (iTri = 1; iTri <= Msh->NbrTri; iTri++) 
   {
@@ -360,39 +361,47 @@ int msh_neighbors(Mesh* Msh) // A écrire
       iVer1 = Msh->Tri[iTri][tri2edg[iEdg][0]];
       iVer2 = Msh->Tri[iTri][tri2edg[iEdg][1]]; 
       int id = hsh->Head[iVer1+iVer2];
-      hash_cout_head(hsh,id);
 
       while(id != 0)
       {
-        printf("Triangle %d : %d \t %d \t %d \n ", iTri, Msh->TriVoi[iTri][0], Msh->TriVoi[iTri][1], Msh->TriVoi[iTri][2]);
+        hash_cout_head(hsh,id);
+        printf("\nTriangle %d : %d \t %d \t %d \n", iTri, Msh->TriVoi[iTri][0], Msh->TriVoi[iTri][1], Msh->TriVoi[iTri][2]);
 
         if((hsh->LstObj[id][0] == iVer1 && hsh->LstObj[id][1] == iVer2) || (hsh->LstObj[id][0] == iVer2 && hsh->LstObj[id][1] == iVer1)) // Identifier l'arête 
         { 
-          // VIRER CE PUTAIN D4OPERATEUR TERNAIRE
-          tri = (hsh->LstObj[id][2] == -1) ? hsh->LstObj[id][3] : hsh->LstObj[id][2]; // Prendre un triangle qui existe
-          for(int p = 0; p < 3; p++)
+          tri = (hsh->LstObj[id][2] == iTri) ? hsh->LstObj[id][3] : hsh->LstObj[id][2]; // Ne pas prendre le triangle sur lequel on se trouve
+          
+          // Vérifier que le triangle n'a pas déjà été stocké
+          if(tri != iTri && tri != -1) // Si le triangle est valide, alors il est "stockable"
           {
-            if(tri == Msh->TriVoi[iTri][p]){break;} // Ne pas stocker 2 fois le même triangle
-            else
+            for(int p = 0; p < 3; p++)
             {
-              if(Msh->TriVoi[iTri][p] == 0){Msh->TriVoi[iTri][p] = tri; break;}
-              else{continue;}
+              if(Msh->TriVoi[iTri][p] == tri){break;} // Triangle déjà stocké
+              if(Msh->TriVoi[iTri][p] == 0) // Voisin pas encore assigné
+                {Msh->TriVoi[iTri][p] = tri; break;} // Stockage et sortie du for
+              else{continue;} // 
             }
+            id = hsh->LstObj[id][4]; // Passer au chaînon suivant
+
+            printf("\nTriangle %d : %d \t %d \t %d \n", iTri, Msh->TriVoi[iTri][0], Msh->TriVoi[iTri][1], Msh->TriVoi[iTri][2]);
           }
-          id = hsh->LstObj[id][4];
+          else
+          {
+            id = hsh->LstObj[id][4]; // Passer directement au chaînon suivant
+          }
         }
         else
         {
           id = hsh->LstObj[id][4];
-          printf("Triangle %d : %d \t %d \t %d \n ", iTri, Msh->TriVoi[iTri][0], Msh->TriVoi[iTri][1], Msh->TriVoi[iTri][2]);
         }
       }
     }
 
-    for(int i = 1; i <= Msh->NbrTri; i++)
-    {
-      printf("Triangle %d : %d \t %d \t %d \n ", i, Msh->TriVoi[i][0], Msh->TriVoi[i][1], Msh->TriVoi[i][2]);
-    }
+
+  }
+  for(int i = 1; i <= Msh->NbrTri; i++)
+  {
+    printf("Triangle %d : %d \t %d \t %d \n ", i, Msh->TriVoi[i][0], Msh->TriVoi[i][1], Msh->TriVoi[i][2]);
   }
 
   return 0;
