@@ -329,7 +329,7 @@ int msh_neighborsQ2(Mesh* Msh) // Ecrite
   return 1;
 }
 
-int msh_neighbors(Mesh* Msh) // A écrire
+int msh_neighbors(Mesh* Msh) // Ecrite
 {
   int iTri, iEdg, iVer1, iVer2, tri;
 
@@ -599,3 +599,49 @@ int msh_write2dmetric(char* file, int nmetric, double3d* metric)
 
   return 1;
 }
+
+double qual1(Mesh* M, int idTri)
+{
+  double2d c0, c1, c2 = {0, 0};
+
+  // Récupérer les coordonnée
+  int loc_c0 = M->Tri[idTri][0];int loc_c1 = M->Tri[idTri][1];int loc_c2 = M->Tri[idTri][2];
+  int3d L_loc = {loc_c0, loc_c1, loc_c2};
+
+  double V = 1/2 * ((M->Crd[loc_c1][0]-M->Crd[loc_c0][0])*(M->Crd[loc_c2][1]-M->Crd[loc_c0][1]) - (M->Crd[loc_c2][0]-c0[0] - M->Crd[loc_c0][0])*(M->Crd[loc_c1][1]- M->Crd[loc_c0][1])); // Aire
+  
+  if(V < 0 || V == 0){printf("Triangle défectueux."); exit(-1);}
+
+  double sum = 0;
+  for(int i = 0; i < 3; i++)
+  {
+    sum += pow(fabs(M->Crd[L_loc[i]][1] - M->Crd[L_loc[i]][0]), 2);
+  }
+
+
+  return sum/V;
+}
+
+double qual2(Mesh* M, int idTri)
+{
+  double2d c0, c1, c2 = {0, 0};
+
+  // Récupérer les coordonnée
+  int loc_c0 = M->Tri[idTri][0];int loc_c1 = M->Tri[idTri][1];int loc_c2 = M->Tri[idTri][2];
+  int3d L_loc = {loc_c0, loc_c1, loc_c2};
+
+  double V = 1/2 * ((M->Crd[loc_c1][0]-M->Crd[loc_c0][0])*(M->Crd[loc_c2][1]-M->Crd[loc_c0][1]) - (M->Crd[loc_c2][0]-c0[0] - M->Crd[loc_c0][0])*(M->Crd[loc_c1][1]- M->Crd[loc_c0][1])); // Aire
+  
+
+  double P = 0;
+  for(int i = 0; i < 3; i++)
+  {
+    P+=fabs(M->Crd[L_loc[i]][0] - M->Crd[L_loc[i]][1]);
+  }
+
+  return 2*V/P; 
+}
+
+  // c0[0] = M->Crd[loc_c1][0]; c0[1] = M->Crd[loc_c1][1]; // Ver1
+  // c1[0] = M->Crd[loc_c2][0]; c1[1] = M->Crd[loc_c2][1]; // Ver2
+  // c2[0] = M->Crd[loc_c3][0]; c2[1] = M->Crd[loc_c2][1]; // Ver3
