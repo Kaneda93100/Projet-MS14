@@ -631,18 +631,18 @@ double qual1(Mesh* M, int idTri)
   int loc_c0 = M->Tri[idTri][0];int loc_c1 = M->Tri[idTri][1];int loc_c2 = M->Tri[idTri][2];
   int3d L_loc = {loc_c0, loc_c1, loc_c2};
 
-  double V = 1/2 * ((M->Crd[loc_c1][0]-M->Crd[loc_c0][0])*(M->Crd[loc_c2][1]-M->Crd[loc_c0][1]) - (M->Crd[loc_c2][0]-M->Crd[loc_c0][0] - M->Crd[loc_c0][0])*(M->Crd[loc_c1][1]- M->Crd[loc_c0][1])); // Aire
-  
+  double V = 0.5 * ((M->Crd[loc_c1][0]-M->Crd[loc_c0][0])*(M->Crd[loc_c2][1]-M->Crd[loc_c0][1])
+              - (M->Crd[loc_c2][0]-M->Crd[loc_c0][0] - M->Crd[loc_c0][0])*(M->Crd[loc_c1][1]- M->Crd[loc_c0][1])); // Aire
+  V *= -1;
   if(V < 0 || V == 0){printf("Triangle défectueux."); exit(-1);}
 
-  double sum = 0;
-  for(int i = 0; i < 3; i++)
-  {
-    sum += pow(fabs(M->Crd[L_loc[i]][1] - M->Crd[L_loc[i]][0]), 2);
-  }
+  double l0 = pow(M->Crd[L_loc[0]][0]-M->Crd[L_loc[1]][0], 2) + pow(M->Crd[L_loc[0]][1]-M->Crd[L_loc[1]][1], 2);
+  double l1 = pow(M->Crd[L_loc[1]][0]-M->Crd[L_loc[2]][0], 2) + pow(M->Crd[L_loc[1]][1]-M->Crd[L_loc[2]][1], 2);
+  double l2 = pow(M->Crd[L_loc[2]][0]-M->Crd[L_loc[0]][0], 2) + pow(M->Crd[L_loc[2]][1]-M->Crd[L_loc[0]][1], 2); 
 
+double alpha1 = 4*sqrt(3); // Alpha1 pour un triangle équilatéral de côté 1
 
-  return sum/V;
+return alpha1*(l0+l1+l2)/V;
 }
 
 double qual2(Mesh* M, int idTri)
@@ -653,16 +653,26 @@ double qual2(Mesh* M, int idTri)
   int loc_c0 = M->Tri[idTri][0];int loc_c1 = M->Tri[idTri][1];int loc_c2 = M->Tri[idTri][2];
   int3d L_loc = {loc_c0, loc_c1, loc_c2};
 
-  double V = 1/2 * ((M->Crd[loc_c1][0]-M->Crd[loc_c0][0])*(M->Crd[loc_c2][1]-M->Crd[loc_c0][1]) - (M->Crd[loc_c2][0]- M->Crd[loc_c0][0] - M->Crd[loc_c0][0])*(M->Crd[loc_c1][1]- M->Crd[loc_c0][1])); // Aire
+  double V = 1/2 * ((M->Crd[loc_c1][0]-M->Crd[loc_c0][0])*(M->Crd[loc_c2][1]-M->Crd[loc_c0][1])
+                   -(M->Crd[loc_c2][0]-M->Crd[loc_c0][0])*(M->Crd[loc_c1][1]-M->Crd[loc_c0][1])); // Aire
   
 
-  double P = 0;
+  double P = 0; // Périmètre du triangle
   for(int i = 0; i < 3; i++)
   {
     P+=fabs(M->Crd[L_loc[i]][0] - M->Crd[L_loc[i]][1]);
   }
 
-  return 2*V/P; 
+  double rho = 2*V/P; // Rayon du cercle inscrit
+
+  double l0 = sqrt(pow(M->Crd[L_loc[0]][0]-M->Crd[L_loc[1]][0], 2) + pow(M->Crd[L_loc[0]][1]-M->Crd[L_loc[1]][1], 2));
+  double l1 = sqrt(pow(M->Crd[L_loc[1]][0]-M->Crd[L_loc[2]][0], 2) + pow(M->Crd[L_loc[1]][1]-M->Crd[L_loc[2]][1], 2));
+  double l2 = sqrt(pow(M->Crd[L_loc[2]][0]-M->Crd[L_loc[0]][0], 2) + pow(M->Crd[L_loc[2]][1]-M->Crd[L_loc[0]][1], 2));
+  double h_max = max(l0,l1); h_max = max(h_max, l2); // Arête la plus longue du triangle
+  
+  double alpha2 = 2*sqrt(3); // Alpha2 pour un triangle equilatéral de côté 1
+
+  return alpha2*h_max/rho; 
 }
 
   // c0[0] = M->Crd[loc_c1][0]; c0[1] = M->Crd[loc_c1][1]; // Ver1

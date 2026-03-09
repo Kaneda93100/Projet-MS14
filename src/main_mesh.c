@@ -43,9 +43,10 @@ int main(int argc, char* argv[])
 
   // printf("  time q2 neigh.        %lg (s) \n", (ti - to) / CLOCKS_PER_SEC);
 
-  return 0;
   //--- TODO: compute mesh quality
   double* Qal = (double*)malloc(sizeof(double) * (Msh->NbrTri + 1));
+
+
 
   for (iTri = 1; iTri <= Msh->NbrTri; iTri++) {
     Qal[iTri] = (double)iTri / 10.;
@@ -55,6 +56,11 @@ int main(int argc, char* argv[])
 
   //--- TODO: compute metric field
   double3d* Met = (double3d*)malloc(sizeof(double3d) * (Msh->NbrVer + 1));
+
+  double Qual1 = qual1(Msh, 1);
+  double Qual2 = qual2(Msh, 1);
+
+  return 0;
 
   for (iVer = 1; iVer <= Msh->NbrVer; iVer++) {
     Met[iVer][0] = 1.;
