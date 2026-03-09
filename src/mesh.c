@@ -315,7 +315,6 @@ int msh_neighborsQ2(Mesh* Msh) // Ecrite
           {
             Msh->TriVoi[iTri][iEdg] = jTri;
             Msh->TriVoi[jTri][jEdg] = iTri;
-            break;
           }
           else
           {
@@ -329,7 +328,7 @@ int msh_neighborsQ2(Mesh* Msh) // Ecrite
   return 1;
 }
 
-int msh_neighbors(Mesh* Msh) // Ecrite
+volatile HashTable* msh_neighbors(Mesh* Msh) // Ecrite
 {
   int iTri, iEdg, iVer1, iVer2, tri;
 
@@ -339,7 +338,6 @@ int msh_neighbors(Mesh* Msh) // Ecrite
     Msh->TriVoi = calloc((Msh->NbrTri + 1), sizeof(int3d));
 
   //--- initialize HashTable and set the hash table 
-  // int hash_size = min(4*Msh->NbrVer, 3*Msh->NbrTri);
   volatile HashTable* hsh = hash_init(2*Msh->NbrVer, 3*Msh->NbrTri);
 
   //--- Ajout des éléments de la liste + assignation des voisins
@@ -350,9 +348,22 @@ int msh_neighbors(Mesh* Msh) // Ecrite
       hash_add(hsh, iVer1, iVer2, iTri);
     }
   }
-  // TODO
-  hash_cout(hsh);
-  printf("\n\n\n\n");
+
+  // for(int k = 0; k < hsh->SizHead; k++){printf(" %d ", hsh->Head[k]);}
+  // printf("\n\n");
+  // for(int j = 0; j < hsh->NbrObj; j++){printf("%d : %d, %d, %d, %d, %d\n",j , hsh->LstObj[j][0]
+  //                                                                            , hsh->LstObj[j][1]
+  //                                                                            , hsh->LstObj[j][2]
+  //                                                                            , hsh->LstObj[j][3]
+  //                                                                            , hsh->LstObj[j][4]);}
+
+  // printf("\n\n\n\n");
+  // for(int i = 1; i <= Msh->NbrTri; i++)
+  // {
+  //   printf("Triangle %d : %d \t %d \t %d \n ", i, Msh->TriVoi[i][0], Msh->TriVoi[i][1], Msh->TriVoi[i][2]);
+  // }
+  // printf("\n\n\n\n");
+
   //--- Compute the neighbors using the hash table
   for (iTri = 1; iTri <= Msh->NbrTri; iTri++) 
   {
@@ -364,15 +375,19 @@ int msh_neighbors(Mesh* Msh) // Ecrite
 
       while(id != 0)
       {
-        hash_cout_head(hsh,id);
-        printf("\nTriangle %d : %d \t %d \t %d \n", iTri, Msh->TriVoi[iTri][0], Msh->TriVoi[iTri][1], Msh->TriVoi[iTri][2]);
-
+        //hash_cout_head(hsh,id);
+        //printf("\nTriangle %d : %d \t %d \t %d \n", iTri, Msh->TriVoi[iTri][0], Msh->TriVoi[iTri][1], Msh->TriVoi[iTri][2]);
+        // printf("%d : %d, %d, %d, %d, %d\n",id , hsh->LstObj[id][0]
+        //                                      , hsh->LstObj[id][1]
+        //                                      , hsh->LstObj[id][2]
+        //                                      , hsh->LstObj[id][3]
+        //                                      , hsh->LstObj[id][4]);
         if((hsh->LstObj[id][0] == iVer1 && hsh->LstObj[id][1] == iVer2) || (hsh->LstObj[id][0] == iVer2 && hsh->LstObj[id][1] == iVer1)) // Identifier l'arête 
         { 
           tri = (hsh->LstObj[id][2] == iTri) ? hsh->LstObj[id][3] : hsh->LstObj[id][2]; // Ne pas prendre le triangle sur lequel on se trouve
           
           // Vérifier que le triangle n'a pas déjà été stocké
-          if(tri != iTri && tri != -1) // Si le triangle est valide, alors il est "stockable"
+          if(tri != iTri && tri != 0) // Si le triangle est valide, alors il est "stockable"
           {
             for(int p = 0; p < 3; p++)
             {
@@ -383,7 +398,7 @@ int msh_neighbors(Mesh* Msh) // Ecrite
             }
             id = hsh->LstObj[id][4]; // Passer au chaînon suivant
 
-            printf("\nTriangle %d : %d \t %d \t %d \n", iTri, Msh->TriVoi[iTri][0], Msh->TriVoi[iTri][1], Msh->TriVoi[iTri][2]);
+            // printf("\nTriangle %d : %d \t %d \t %d \n", iTri, Msh->TriVoi[iTri][0], Msh->TriVoi[iTri][1], Msh->TriVoi[iTri][2]);
           }
           else
           {
@@ -399,12 +414,19 @@ int msh_neighbors(Mesh* Msh) // Ecrite
 
 
   }
-  for(int i = 1; i <= Msh->NbrTri; i++)
-  {
-    printf("Triangle %d : %d \t %d \t %d \n ", i, Msh->TriVoi[i][0], Msh->TriVoi[i][1], Msh->TriVoi[i][2]);
-  }
+  // printf("\n\n\n");
+  // for(int i = 1; i <= Msh->NbrTri; i++)
+  // {
+  //   printf("Triangle %d : %d \t %d \t %d \n ", i, Msh->TriVoi[i][0], Msh->TriVoi[i][1], Msh->TriVoi[i][2]);
+  // }
+  // printf("\n\n\n");
+  // for(int j = 0; j < hsh->NbrObj; j++){printf("%d : %d, %d, %d, %d, %d\n",j , hsh->LstObj[j][0]
+  //                                                                           , hsh->LstObj[j][1]
+  //                                                                           , hsh->LstObj[j][2]
+  //                                                                           , hsh->LstObj[j][3]
+  //                                                                           , hsh->LstObj[j][4]);}
 
-  return 0;
+  return hsh;
 }
 
 volatile HashTable* hash_init(int SizHead, int NbrMaxObj) //Ecrite
@@ -418,6 +440,7 @@ volatile HashTable* hash_init(int SizHead, int NbrMaxObj) //Ecrite
   hsh->Head = malloc(sizeof(int)*SizHead);
   for(int i = 0; i < SizHead; i++){hsh->Head[i] = 0;}
   hsh->LstObj = malloc(sizeof(int5d)*NbrMaxObj);
+  hsh->LstObj[0][0] = 0; hsh->LstObj[0][1] = 0; hsh->LstObj[0][2] = 0;hsh->LstObj[0][3] = 0; hsh->LstObj[0][4] = 0;
 
   return hsh;
 }
@@ -464,7 +487,7 @@ int hash_find(volatile HashTable* hsh, int iVer1, int iVer2) //Ecrite
   int k = hsh->Head[iVer1+iVer2];
 
   if(hsh->NbrObj == 0){
-    printf("Table vide.\n");
+    //printf("Table vide.\n");
     return 0; 
   }
 
@@ -492,7 +515,7 @@ int hash_add(volatile HashTable* hsh, int iVer1, int iVer2, int iTri) //Ecrite
       hsh->LstObj[hsh->NbrObj+1][0] = iVer1;
       hsh->LstObj[hsh->NbrObj+1][1] = iVer2;
       hsh->LstObj[hsh->NbrObj+1][2] = iTri;
-      hsh->LstObj[hsh->NbrObj+1][3] = -1;
+      hsh->LstObj[hsh->NbrObj+1][3] = 0;
       hsh->LstObj[hsh->NbrObj+1][4] = 0;
 
       //Mise à jour de la table
@@ -503,7 +526,7 @@ int hash_add(volatile HashTable* hsh, int iVer1, int iVer2, int iTri) //Ecrite
     }
     else
     {
-      if(hsh->LstObj[pos][3] == -1){
+      if(hsh->LstObj[pos][3] == 0){
         hsh->LstObj[pos][3] = iTri;
       }
     }
@@ -514,7 +537,7 @@ int hash_add(volatile HashTable* hsh, int iVer1, int iVer2, int iTri) //Ecrite
     hsh->LstObj[hsh->NbrObj+1][0] = iVer1;
     hsh->LstObj[hsh->NbrObj+1][1] = iVer2;
     hsh->LstObj[hsh->NbrObj+1][2] = iTri;
-    hsh->LstObj[hsh->NbrObj+1][3] = -1;
+    hsh->LstObj[hsh->NbrObj+1][3] = 0;
     hsh->LstObj[hsh->NbrObj+1][4] = 0;
     hsh->NbrObj++;
   }
@@ -602,13 +625,13 @@ int msh_write2dmetric(char* file, int nmetric, double3d* metric)
 
 double qual1(Mesh* M, int idTri)
 {
-  double2d c0, c1, c2 = {0, 0};
+  //double2d c0, c1, c2 = {0, 0};
 
   // Récupérer les coordonnée
   int loc_c0 = M->Tri[idTri][0];int loc_c1 = M->Tri[idTri][1];int loc_c2 = M->Tri[idTri][2];
   int3d L_loc = {loc_c0, loc_c1, loc_c2};
 
-  double V = 1/2 * ((M->Crd[loc_c1][0]-M->Crd[loc_c0][0])*(M->Crd[loc_c2][1]-M->Crd[loc_c0][1]) - (M->Crd[loc_c2][0]-c0[0] - M->Crd[loc_c0][0])*(M->Crd[loc_c1][1]- M->Crd[loc_c0][1])); // Aire
+  double V = 1/2 * ((M->Crd[loc_c1][0]-M->Crd[loc_c0][0])*(M->Crd[loc_c2][1]-M->Crd[loc_c0][1]) - (M->Crd[loc_c2][0]-M->Crd[loc_c0][0] - M->Crd[loc_c0][0])*(M->Crd[loc_c1][1]- M->Crd[loc_c0][1])); // Aire
   
   if(V < 0 || V == 0){printf("Triangle défectueux."); exit(-1);}
 
@@ -624,13 +647,13 @@ double qual1(Mesh* M, int idTri)
 
 double qual2(Mesh* M, int idTri)
 {
-  double2d c0, c1, c2 = {0, 0};
+  //double2d c0, c1, c2 = {0, 0};
 
   // Récupérer les coordonnée
   int loc_c0 = M->Tri[idTri][0];int loc_c1 = M->Tri[idTri][1];int loc_c2 = M->Tri[idTri][2];
   int3d L_loc = {loc_c0, loc_c1, loc_c2};
 
-  double V = 1/2 * ((M->Crd[loc_c1][0]-M->Crd[loc_c0][0])*(M->Crd[loc_c2][1]-M->Crd[loc_c0][1]) - (M->Crd[loc_c2][0]-c0[0] - M->Crd[loc_c0][0])*(M->Crd[loc_c1][1]- M->Crd[loc_c0][1])); // Aire
+  double V = 1/2 * ((M->Crd[loc_c1][0]-M->Crd[loc_c0][0])*(M->Crd[loc_c2][1]-M->Crd[loc_c0][1]) - (M->Crd[loc_c2][0]- M->Crd[loc_c0][0] - M->Crd[loc_c0][0])*(M->Crd[loc_c1][1]- M->Crd[loc_c0][1])); // Aire
   
 
   double P = 0;

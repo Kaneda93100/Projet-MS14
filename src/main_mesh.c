@@ -21,24 +21,29 @@ int main(int argc, char* argv[])
   printf("  Triangles  %10d \n", Msh->NbrTri);
   printf("  time to read the mesh %lg (s) \n", (ti - to) / CLOCKS_PER_SEC);
 
-  //--- create neigbhors Q2 version
-  to = clock();
-  msh_neighbors(Msh);
-  ti = clock();
-  
-  return 0;
-
-  printf("  time q2 neigh.        %lg (s) \n", (ti - to) / CLOCKS_PER_SEC);
-
   //--- create neigbhors with hash table
   to = clock();
-  msh_neighbors(Msh);
+  volatile HashTable* H = msh_neighbors(Msh);
   ti = clock();
 
+  // for(int j = 0; j <= Msh->NbrTri; j++){printf("%d : %d, %d, %d\n",j , Msh->TriVoi[j][0]
+  //                                                                    , Msh->TriVoi[j][1]
+  //                                                                    , Msh->TriVoi[j][2]);}
 
+  // printf("%f\t%f\n", to, ti);
 
   printf("  time hash tab neigh.  %lg (s) \n", (ti - to) / CLOCKS_PER_SEC);
 
+  printf("\n\n\n");
+
+  //--- create neigbhors Q2 version
+  // to = clock();
+  // msh_neighborsQ2(Msh);
+  // ti = clock();
+
+  // printf("  time q2 neigh.        %lg (s) \n", (ti - to) / CLOCKS_PER_SEC);
+
+  return 0;
   //--- TODO: compute mesh quality
   double* Qal = (double*)malloc(sizeof(double) * (Msh->NbrTri + 1));
 
