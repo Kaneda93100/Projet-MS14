@@ -91,21 +91,35 @@ typedef struct hash_table {
 
 //--- Functions to be implemented
 int msh_boundingbox(Mesh* Msh); // compute the bouding box of the mesh
-volatile HashTable* msh_neighbors(Mesh* Msh); // build TriVoi with a hash table
 int msh_neighborsQ2(Mesh* Msh); // build TriVoi with the naive quadratic approach
 
-//--- Implementing the following function should be necessary
+// Initialisation et construction des tables de hachages
 volatile HashTable* hash_init(int SizHead, int NbrMaxObj); // alloc and set htable ==> allocate Head, LstObj
+volatile HashTable* Hash_build(Mesh* Msh); // Construire la table de hachage
 
-//--- Affichage d'une table
-void hash_cout_head(volatile HashTable* hsh, int Key);
-void hash_cout(volatile HashTable* hsh);
+//--- Diverses méthodes sur les HashTable
+void hash_cout_head(volatile HashTable* hsh, int Key); // Afficher les éléments d'une tête
+void hash_cout(volatile HashTable* hsh); // Afficher la table par clé
+void LstObj_cout(volatile HashTable*); // Afficher la table de hachage objet par objet
+void Head_cout(volatile HashTable*); // Afficher la liste des têtes
+
+int hash_count_head(volatile HashTable* hsh, int id); // Compter le nombre d'éléments d'une tête
+int* hash_biggest_head(volatile HashTable*);
+double Av_colision(volatile HashTable*);
 
 int hash_find(volatile HashTable* hsh, int iVer1, int iVer2); // return the id found (in LstObj ), if 0 the object is not in the list
 int hash_add(volatile HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> add this entry in the hash tab
 int hash_suppr(volatile HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> suppress this entry in the hash tab
 
-//--- Fonction used for adaptation
+// Utilisation des tables de hachages pour les maillages + utilitaires pour debugger
+int msh_neighbors(Mesh* Msh); // build TriVoi with a hash table
+int Edges_build(Mesh* Msh); // Trouver les arêtes sur le bord du maillage
+void TriVoi_cout(Mesh*); // Affichage de la liste des triangles voisins
+void Edges_vertices_cout(Mesh*); // Affichage de la liste des arêtes de bord
+
+// Calcul des qualités
+double qual1(Mesh* M, int idTri);
+double qual2(Mesh* M, int idTri);
 
 //--- Writes a 2d metric tensor field in a file (extension should be .sol)
 int msh_write2dmetric(char* file, int nmetric, double3d* metric);
