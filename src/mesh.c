@@ -323,7 +323,19 @@ int msh_neighborsQ2(Mesh* Msh)
   return 1;
 }
 
-// Diverses méthodes sur les HashTable
+// Méthodes sur les stacks
+volatile stack* stack_init(int size)
+{
+  stack* S = malloc(sizeof(stack));
+  
+  S->size = size;
+  S->array = malloc(sizeof(int)*size);
+  S->top = 0;
+
+  return S;
+}
+
+// Méthodes sur les HashTable
 volatile HashTable* hash_init(int SizHead, int NbrMaxObj) 
 {
   HashTable* hsh = malloc(sizeof(HashTable)); 
@@ -612,81 +624,100 @@ int Edges_build(Mesh* Msh)
   printf("Nombre d'arête sur la frontière : %d", count);
   return 1;
 }
+
 void coloriage_magique(Mesh* Msh)
 { 
-  /*
-    On suppose par défaut qu'il y a 5 domaines et qu'il s'agit du maillage squarecircle.mesh
-  */
+  int* stack = malloc(sizeof(int) * Msh->NbrTri); stack[0] = 0;
+  int top = 0;
+  int color = 0;
+  int iTri, tri, voi;
 
-  volatile HashTable* hsh = Hash_build(Msh);
+  int check = 0;
+  int* ar_com = malloc(sizeof(int)*2); 
+  // Initialiser les couleurs (non colorié == -1)
+  for(int i = 1; i <= Msh->NbrTri; i++){Msh->TriRef[i] = -1;}
 
-  // Récupérer les frontières dans 5 listes
-  int* D1 = malloc(sizeof(int)*Msh->NbrEfrMax);
-  int* D2 = malloc(sizeof(int)*Msh->NbrEfrMax);
-  int* D3 = malloc(sizeof(int)*Msh->NbrEfrMax);
-  int* D4 = malloc(sizeof(int)*Msh->NbrEfrMax);
-  int* D5 = malloc(sizeof(int)*Msh->NbrEfrMax);
-
-  printf("\nAffichage de Msh->EfrRef\n");
-  for(int i = 1; i <= Msh->NbrEfrMax; i++){printf("%d : %d\n", i, Msh->EfrRef[i]);}
+  for(int i = 1; i <= Msh->NbrEfrMax; i++){printf("%d : %d \n", i, Msh->EfrRef[i]);}
   
-  int k1 = 0, k2 = 0, k3 = 0, k4 = 0, k5 = 0;
-  for(int i = 1; i <= Msh->NbrEfrMax; i++)
+  for(iTri = 1; iTri <= Msh->NbrTri; iTri++)
   {
-    if(Msh->EfrRef[i] == 1){D1[k1] = i; k1++;}
-    if(Msh->EfrRef[i] == 2){D2[k2] = i; k2++;}
-    if(Msh->EfrRef[i] == 3){D3[k3] = i; k3++;}
-    if(Msh->EfrRef[i] == 4){D4[k4] = i; k4++;}
-    if(Msh->EfrRef[i] == 5){D5[k5] = i; k5++;}
-  }
-  for(int i = 0; i < Msh->NbrEfr; i++){printf("%d\n", D5[i]);}
-  printf("\n\n");
-  // Construction des voisins
-//--- Compute the neighbors using the hash table
-int iTri, iEdg, iVer1, iVer2, tri;
-for (iTri = 1; iTri <= Msh->NbrTri; iTri++) 
-  {
-    for (iEdg = 0; iEdg < 3; iEdg++) 
+    if(Msh->TriRef[iTri] == -1) // Le triangle n'est pas colorié
     {
-      iVer1 = Msh->Tri[iTri][tri2edg[iEdg][0]];
-      iVer2 = Msh->Tri[iTri][tri2edg[iEdg][1]]; 
-      int id = hsh->Head[iVer1+iVer2];
+      // Initialiser la pile : stack[0] = iTri
+      stack[1] = iTri; 
+      top = 1;
 
-      while(id != 0)
+      while(top != 0)
       {
-        if((hsh->LstObj[id][0] == iVer1 && hsh->LstObj[id][1] == iVer2) || (hsh->LstObj[id][0] == iVer2 && hsh->LstObj[id][1] == iVer1)) // Identifier l'arête 
-        { 
-          tri = (hsh->LstObj[id][2] == iTri) ? hsh->LstObj[id][3] : hsh->LstObj[id][2]; // Ne pas prendre le triangle sur lequel on se trouve
-          
-          // Vérifier que le triangle n'a pas déjà été stocké
-          if(tri != iTri && tri != 0) // Si le triangle est valide, alors il est "stockable"
+        tri = stack[top];
+        // On commence par colorier le triangle en tête de la stack
+        Msh->TriRef[tri] = color; 
+        top--;
+        
+        // On parcourt les voisins de tri
+        for(int k = 0; k < 3; k++)
+        {
+          voi = Msh->TriVoi[tri][k];
+          if(voi == 0){continue;}
+
+          ar_com = intersect(Msh->Tri[tri], Msh->Tri[voi]); // trouver l'arête commune entre les 2 triangles
+          if(is_edge(Msh, ar_com, color) == 0)  // Si l'arête n'est pas dans un bord, ajouter le voisin à la stack
           {
-            for(int p = 0; p < 3; p++)
-            {
-              if(Msh->TriVoi[iTri][p] == tri){break;} // Triangle déjà stocké
-              if(Msh->TriVoi[iTri][p] == 0) // Voisin pas encore assigné
-                {Msh->TriVoi[iTri][p] = tri; break;} // Stockage et sortie du for
-              else{continue;} // 
-            }
-
-            id = hsh->LstObj[id][4]; // Passer au chaînon suivant
-
-            // printf("\nTriangle %d : %d \t %d \t %d \n", iTri, Msh->TriVoi[iTri][0], Msh->TriVoi[iTri][1], Msh->TriVoi[iTri][2]);
+            if(Msh->TriRef[voi] != -1){continue;} // Vérifier que le triangle n'est pas déjà colorié
+            stack[top+1] = voi; // On l'ajoute à la stack
+            top++; // On met le pointeur sur la tête de la stack à jour
           }
-          else{id = hsh->LstObj[id][4];} // Passer directement au chaînon suivant
+          // Si l'arête est un bord, alors on ne l'ajoute pas à la stack et on continue (au début, top != 0)
         }
-        else{id = hsh->LstObj[id][4];}
+
+      }
+      // En sortant du while, on a parcouru tout le domaine, donc on passe à la couleur suivante et on recommence
+      color++;
+    }
+  }
+  
+  // On écrit directement dans l'attribut TriRef de Msh, donc pas d'objet à retourner.
+  return; 
+}
+int* intersect(int3d Tri1, int3d Tri2)
+{
+  int* ar_com = malloc(sizeof(int)*2); ar_com[0] = 0; ar_com[1] = 0;
+  int k = 0;
+  for(int i = 0; i < 3; i++)
+  {
+    for(int j = 0; j < 3; j++)
+    {
+      if(Tri1[i] == Tri2[j])
+      {
+        ar_com[k] = Tri1[i];
+        k++;
+        if(k == 2){break;}
       }
     }
-
-
   }
-  
 
-  
-
+  return ar_com;
 }
 
+int is_edge(Mesh* M, int* id_vert, int color)
+{
+  int found = 0;
+
+  for(int i = 1; i <= M->NbrEfr; i++)
+  {
+    if((M->Efr[i][0] == id_vert[0] && M->Efr[i][1] == id_vert[1]) || (M->Efr[i][0] == id_vert[1] && M->Efr[i][1] == id_vert[0])) // Identifier une arête de bord
+    {
+      if(M->EfrRef[i] != color)
+      {
+        found = 1;
+        return found;
+      }
+
+    }
+  }
+
+  return found;
+}
 
 void Edges_vertices_cout(Mesh* Msh)
 {

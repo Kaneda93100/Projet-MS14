@@ -89,6 +89,12 @@ typedef struct hash_table {
 
 } HashTable;
 
+typedef struct stack {
+  int* array;
+  int size;
+  int top;
+} stack;
+
 //--- Functions to be implemented
 int msh_boundingbox(Mesh* Msh); // compute the bouding box of the mesh
 int msh_neighborsQ2(Mesh* Msh); // build TriVoi with the naive quadratic approach
@@ -96,6 +102,11 @@ int msh_neighborsQ2(Mesh* Msh); // build TriVoi with the naive quadratic approac
 // Initialisation et construction des tables de hachages
 volatile HashTable* hash_init(int SizHead, int NbrMaxObj); // alloc and set htable ==> allocate Head, LstObj
 volatile HashTable* Hash_build(Mesh* Msh); // Construire la table de hachage
+
+//--- Méthode sur les stack
+volatile stack* stack_init(int);
+void add_stack(stack*);
+void depile(stack*);
 
 //--- Diverses méthodes sur les HashTable
 void hash_cout_head(volatile HashTable* hsh, int Key); // Afficher les éléments d'une tête
@@ -115,7 +126,11 @@ int hash_suppr(volatile HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> 
 int msh_neighbors(Mesh* Msh); // build TriVoi with a hash table
 int Edges_build(Mesh* Msh); // Trouver les arêtes sur le bord du maillage
 void EdgVoi_build(Mesh*); // construire les arêtes de bord voisine avec une table de hash
-void coloriage_magique(Mesh*);
+
+// Coloriage d'un maillage selon des sous-domaines
+void coloriage_magique(Mesh*); // Coloriage magique !
+int* intersect(int3d, int3d); // Trouver l'arête commune à deux triangles
+int is_edge(Mesh*, int*, int); // Savoir si une arête appartient à une frontière ou non
 
 // Utilisation des tables de hachages pour les maillages + utilitaires pour debugger
 void TriVoi_cout(Mesh*); // Affichage de la liste des triangles voisins
