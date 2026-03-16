@@ -600,17 +600,94 @@ int Edges_build(Mesh* Msh)
   */
   
   volatile HashTable* hsh = Hash_build(Msh);
-  LstObj_cout(hsh);
 
   int k = 0;
+  int count = 0;
   for(int i = 1; i <= hsh->NbrObj; i++)
   {
-    if(hsh->LstObj[i][3] == 0){Msh->EfrRef[k] = i;k++;}
+    if(hsh->LstObj[i][3] == 0){Msh->EfrRef[k] = i;count++;k++;}
     Msh->NbrEdg = k;
   }
 
+  printf("Nombre d'arête sur la frontière : %d", count);
   return 1;
 }
+void coloriage_magique(Mesh* Msh)
+{ 
+  /*
+    On suppose par défaut qu'il y a 5 domaines et qu'il s'agit du maillage squarecircle.mesh
+  */
+
+  volatile HashTable* hsh = Hash_build(Msh);
+
+  // Récupérer les frontières dans 5 listes
+  int* D1 = malloc(sizeof(int)*Msh->NbrEfrMax);
+  int* D2 = malloc(sizeof(int)*Msh->NbrEfrMax);
+  int* D3 = malloc(sizeof(int)*Msh->NbrEfrMax);
+  int* D4 = malloc(sizeof(int)*Msh->NbrEfrMax);
+  int* D5 = malloc(sizeof(int)*Msh->NbrEfrMax);
+
+  printf("\nAffichage de Msh->EfrRef\n");
+  for(int i = 1; i <= Msh->NbrEfrMax; i++){printf("%d : %d\n", i, Msh->EfrRef[i]);}
+  
+  int k1 = 0, k2 = 0, k3 = 0, k4 = 0, k5 = 0;
+  for(int i = 1; i <= Msh->NbrEfrMax; i++)
+  {
+    if(Msh->EfrRef[i] == 1){D1[k1] = i; k1++;}
+    if(Msh->EfrRef[i] == 2){D2[k2] = i; k2++;}
+    if(Msh->EfrRef[i] == 3){D3[k3] = i; k3++;}
+    if(Msh->EfrRef[i] == 4){D4[k4] = i; k4++;}
+    if(Msh->EfrRef[i] == 5){D5[k5] = i; k5++;}
+  }
+  for(int i = 0; i < Msh->NbrEfr; i++){printf("%d\n", D5[i]);}
+  printf("\n\n");
+  // Construction des voisins
+//--- Compute the neighbors using the hash table
+int iTri, iEdg, iVer1, iVer2, tri;
+for (iTri = 1; iTri <= Msh->NbrTri; iTri++) 
+  {
+    for (iEdg = 0; iEdg < 3; iEdg++) 
+    {
+      iVer1 = Msh->Tri[iTri][tri2edg[iEdg][0]];
+      iVer2 = Msh->Tri[iTri][tri2edg[iEdg][1]]; 
+      int id = hsh->Head[iVer1+iVer2];
+
+      while(id != 0)
+      {
+        if((hsh->LstObj[id][0] == iVer1 && hsh->LstObj[id][1] == iVer2) || (hsh->LstObj[id][0] == iVer2 && hsh->LstObj[id][1] == iVer1)) // Identifier l'arête 
+        { 
+          tri = (hsh->LstObj[id][2] == iTri) ? hsh->LstObj[id][3] : hsh->LstObj[id][2]; // Ne pas prendre le triangle sur lequel on se trouve
+          
+          // Vérifier que le triangle n'a pas déjà été stocké
+          if(tri != iTri && tri != 0) // Si le triangle est valide, alors il est "stockable"
+          {
+            for(int p = 0; p < 3; p++)
+            {
+              if(Msh->TriVoi[iTri][p] == tri){break;} // Triangle déjà stocké
+              if(Msh->TriVoi[iTri][p] == 0) // Voisin pas encore assigné
+                {Msh->TriVoi[iTri][p] = tri; break;} // Stockage et sortie du for
+              else{continue;} // 
+            }
+
+            id = hsh->LstObj[id][4]; // Passer au chaînon suivant
+
+            // printf("\nTriangle %d : %d \t %d \t %d \n", iTri, Msh->TriVoi[iTri][0], Msh->TriVoi[iTri][1], Msh->TriVoi[iTri][2]);
+          }
+          else{id = hsh->LstObj[id][4];} // Passer directement au chaînon suivant
+        }
+        else{id = hsh->LstObj[id][4];}
+      }
+    }
+
+
+  }
+  
+
+  
+
+}
+
+
 void Edges_vertices_cout(Mesh* Msh)
 {
   printf("\n\n");
@@ -619,7 +696,6 @@ void Edges_vertices_cout(Mesh* Msh)
 
   return;
 }
-
 void hash_cout_head(volatile HashTable* hsh, int Key)
 {  
   /*
@@ -796,7 +872,7 @@ double qual1(Mesh* M, int idTri)
   double l1 = pow(M->Crd[L_loc[1]][0]-M->Crd[L_loc[2]][0], 2) + pow(M->Crd[L_loc[1]][1]-M->Crd[L_loc[2]][1], 2); // 0.125
   double l2 = pow(M->Crd[L_loc[2]][0]-M->Crd[L_loc[0]][0], 2) + pow(M->Crd[L_loc[2]][1]-M->Crd[L_loc[0]][1], 2); // 0.5
 
-double alpha1 = 4*sqrt(3); // Alpha1 pour un triangle équilatéral de côté 1
+double alpha1 = sqrt(3)/12; // Alpha1 pour un triangle équilatéral de côté 1
 
 return alpha1*(l0+l1+l2)/V;
 }
@@ -821,7 +897,7 @@ double qual2(Mesh* M, int idTri)
   double h_max = (l0 <= l1) ? l1 : l0; 
   h_max = (h_max <= l2) ? l2 : h_max;
   
-  double alpha2 = 2*sqrt(3); // Alpha2 pour un triangle equilatéral de côté 1
+  double alpha2 = sqrt(3)/6; // Alpha2 pour un triangle equilatéral de côté 1
 
   return alpha2*h_max/rho; 
 }

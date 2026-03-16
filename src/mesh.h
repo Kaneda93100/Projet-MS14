@@ -60,12 +60,12 @@ typedef struct t_mesh {
   int1d* TriMrk; // triangle color (mark)
 
   //--- Data for the list of boundary edges
-  int2d* Efr; // indices of the two vertices composing the boundary edge
-  int2d* EfrVoi; // indices of the two boundary edges neighbors
-  int1d* EfrRef; // boundary edges reference
+  int2d* Efr; // indices of the two vertices composing the boundary edge   Rempli
+  int2d* EfrVoi; // indices of the two boundary edges neighbors            Vide
+  int1d* EfrRef; // boundary edges reference                               Rempli
 
   //--- Data for the list of edges
-  int2d* Edg; // indices of the two vertices composing the edge
+  int2d* Edg; // indices of the two vertices composing the edge             Vide
 
 } Mesh;
 
@@ -111,9 +111,13 @@ int hash_find(volatile HashTable* hsh, int iVer1, int iVer2); // return the id f
 int hash_add(volatile HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> add this entry in the hash tab
 int hash_suppr(volatile HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> suppress this entry in the hash tab
 
-// Utilisation des tables de hachages pour les maillages + utilitaires pour debugger
+// Utiliser les tables de hachages pour construire les voisins 
 int msh_neighbors(Mesh* Msh); // build TriVoi with a hash table
 int Edges_build(Mesh* Msh); // Trouver les arêtes sur le bord du maillage
+void EdgVoi_build(Mesh*); // construire les arêtes de bord voisine avec une table de hash
+void coloriage_magique(Mesh*);
+
+// Utilisation des tables de hachages pour les maillages + utilitaires pour debugger
 void TriVoi_cout(Mesh*); // Affichage de la liste des triangles voisins
 void Edges_vertices_cout(Mesh*); // Affichage de la liste des arêtes de bord
 
