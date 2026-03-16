@@ -323,18 +323,6 @@ int msh_neighborsQ2(Mesh* Msh)
   return 1;
 }
 
-// Méthodes sur les stacks
-volatile stack* stack_init(int size)
-{
-  stack* S = malloc(sizeof(stack));
-  
-  S->size = size;
-  S->array = malloc(sizeof(int)*size);
-  S->top = 0;
-
-  return S;
-}
-
 // Méthodes sur les HashTable
 volatile HashTable* hash_init(int SizHead, int NbrMaxObj) 
 {
@@ -491,6 +479,45 @@ double Av_colision(volatile HashTable* hsh)
   return (double)TC/(double)NEH;
 }
 
+// Méthodes sur les stacks
+stack* stack_init(int size)
+{
+  stack* s = malloc(sizeof(stack));
+
+  s->array = malloc(sizeof(int)*size);
+  for(int i = 0; i < s->size; i++){s->array[i] = 0;}
+
+  s->top = 0;
+  s->size = size;
+
+  return s;
+}
+void stack_add(stack* s, int new)
+{
+  /* Ajoute un élément à la stack. */
+
+  s->top++;
+  s->array[s->top] = new;
+
+  return;
+}
+void stack_del(stack* s)
+{
+  /* Retire la tête de la stack */
+
+  s->array[s->top] = 0;
+  s->top--;
+
+  return;
+
+}
+void stack_cout(stack* s)
+{
+  printf("Current top : %d\n", s->top);
+  for(int i = 0; i < s->top; i++){printf("%d : %d\n", i, s->array[i]);}
+  return;
+}
+
 volatile HashTable* Hash_build(Mesh* Msh)
 {
 
@@ -525,7 +552,6 @@ volatile HashTable* Hash_build(Mesh* Msh)
 
   return hsh;
 }
-
 int msh_neighbors(Mesh* Msh)
 {
   /*
@@ -679,6 +705,57 @@ void coloriage_magique(Mesh* Msh)
   // On écrit directement dans l'attribut TriRef de Msh, donc pas d'objet à retourner.
   return; 
 }
+
+// void coloriage_magique(Mesh* Msh)
+// { 
+//   stack* stack = stack_init(Msh->NbrTri); // Stack
+//   int color = 0; // Couleur initiale
+//   int iTri, tri, voi;
+//   int* ar_com = malloc(sizeof(int)*2); 
+
+//   // Initialiser les couleurs (non colorié == -1)
+//   for(int i = 1; i <= Msh->NbrTri; i++){Msh->TriRef[i] = -1;}
+
+//   for(iTri = 1; iTri <= Msh->NbrTri; iTri++)
+//   {
+//     if(Msh->TriRef[iTri] == -1) // Le triangle n'est pas colorié
+//     {
+//       // Initialiser la pile
+//       stack_add(stack, iTri);
+
+//       while(stack->top != 0)
+//       {
+//         // Récupérer la tête de pile
+//         tri = stack->array[stack->top];
+
+//         // On commence par colorier le triangle en tête de la stack
+//         Msh->TriRef[tri] = color; 
+//         stack_del(stack);
+        
+//         // On parcourt les voisins de tri
+//         for(int k = 0; k < 3; k++)
+//         {
+//           voi = Msh->TriVoi[tri][k];
+//           if(voi == 0){continue;}
+
+//           ar_com = intersect(Msh->Tri[tri], Msh->Tri[voi]); // Trouver l'arête commune entre les 2 triangles
+//           if(is_edge(Msh, ar_com, color) == 0)  // Si l'arête n'est pas dans un bord, ajouter le voisin à la stack
+//           {
+//             if(Msh->TriRef[voi] != -1){continue;} // Vérifier que le triangle n'est pas déjà colorié
+//             stack_add(stack, voi); // On l'ajoute
+//           }
+//           else{continue;}// Si l'arête est un bord, alors on ne l'ajoute pas à la stack et on continue (au début, top != 0)
+//         }
+
+//       }
+//       // En sortant du while, on a parcouru tout le sous-domaine, donc on passe à la couleur suivante et on recommence
+//       color++;
+//     }
+//   }
+  
+//   // On écrit directement dans l'attribut TriRef de Msh, donc pas d'objet à retourner.
+//   return; 
+// }
 int* intersect(int3d Tri1, int3d Tri2)
 {
   int* ar_com = malloc(sizeof(int)*2); ar_com[0] = 0; ar_com[1] = 0;
@@ -698,7 +775,6 @@ int* intersect(int3d Tri1, int3d Tri2)
 
   return ar_com;
 }
-
 int is_edge(Mesh* M, int* id_vert, int color)
 {
   int found = 0;

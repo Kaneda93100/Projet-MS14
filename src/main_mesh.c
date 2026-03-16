@@ -32,13 +32,13 @@ int main(int argc, char* argv[])
 
 
   int succeed = msh_neighbors(Msh);
+  printf("%d", succeed);
   
   if(succeed != 1){printf("Erreur dans le calcul des voisins.\n"); return 0;}
 
   coloriage_magique(Msh);
   for(int i = 1; i <= Msh->NbrTri; i++){printf("%d : %d\n",i,Msh->TriRef[i]);}
-  
-  msh_write(Msh, "carre_debug_colored.mesh");
+  msh_write(Msh, "colored.mesh");
 
   double* Qal = (double*)malloc(sizeof(double) * (Msh->NbrTri + 1));
   for (iTri = 1; iTri <= Msh->NbrTri; iTri++) {

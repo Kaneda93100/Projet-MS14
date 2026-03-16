@@ -104,9 +104,10 @@ volatile HashTable* hash_init(int SizHead, int NbrMaxObj); // alloc and set htab
 volatile HashTable* Hash_build(Mesh* Msh); // Construire la table de hachage
 
 //--- Méthode sur les stack
-volatile stack* stack_init(int);
-void add_stack(stack*);
-void depile(stack*);
+stack* stack_init(int);
+void stack_add(stack*, int);
+void stack_del(stack*);
+void stack_cout(stack*);
 
 //--- Diverses méthodes sur les HashTable
 void hash_cout_head(volatile HashTable* hsh, int Key); // Afficher les éléments d'une tête
