@@ -653,7 +653,10 @@ int Edges_build(Mesh* Msh)
 
 void coloriage_magique(Mesh* Msh)
 { 
-  int* stack = malloc(sizeof(int) * Msh->NbrTri); stack[0] = 0;
+  /*
+    A corriger : remplacer int* stack par stack* stack et réadapter l'algorithme en conséquence
+  */
+  int* stack = malloc(sizeof(int) * Msh->NbrTri); stack[0] = 0; // stack* stack = stack_init(Msh->NbrTri);
   int top = 0;
   int color = 0;
   int iTri, tri, voi;
@@ -669,8 +672,8 @@ void coloriage_magique(Mesh* Msh)
   {
     if(Msh->TriRef[iTri] == -1) // Le triangle n'est pas colorié
     {
-      // Initialiser la pile : stack[0] = iTri
-      stack[1] = iTri; 
+      // Initialiser la pile : stack[0] = iTri 
+      stack[1] = iTri; // tri = stack->array[stack->top];
       top = 1;
 
       while(top != 0)
@@ -679,12 +682,14 @@ void coloriage_magique(Mesh* Msh)
         // On commence par colorier le triangle en tête de la stack
         Msh->TriRef[tri] = color; 
         top--;
+        //         Msh->TriRef[tri] = color; 
+        //         stack_del(stack);
         
         // On parcourt les voisins de tri
         for(int k = 0; k < 3; k++)
         {
           voi = Msh->TriVoi[tri][k];
-          if(voi == 0){continue;}
+          if(voi == 0){continue;} // Triangle sur le bord du maillage
 
           ar_com = intersect(Msh->Tri[tri], Msh->Tri[voi]); // trouver l'arête commune entre les 2 triangles
           if(is_edge(Msh, ar_com, color) == 0)  // Si l'arête n'est pas dans un bord, ajouter le voisin à la stack
@@ -692,10 +697,10 @@ void coloriage_magique(Mesh* Msh)
             if(Msh->TriRef[voi] != -1){continue;} // Vérifier que le triangle n'est pas déjà colorié
             stack[top+1] = voi; // On l'ajoute à la stack
             top++; // On met le pointeur sur la tête de la stack à jour
+            //             stack_add(stack, voi);
           }
-          // Si l'arête est un bord, alors on ne l'ajoute pas à la stack et on continue (au début, top != 0)
+        // Si l'arête est un bord, alors on ne l'ajoute pas à la stack et on continue (au début, top != 0)
         }
-
       }
       // En sortant du while, on a parcouru tout le domaine, donc on passe à la couleur suivante et on recommence
       color++;
@@ -705,57 +710,6 @@ void coloriage_magique(Mesh* Msh)
   // On écrit directement dans l'attribut TriRef de Msh, donc pas d'objet à retourner.
   return; 
 }
-
-// void coloriage_magique(Mesh* Msh)
-// { 
-//   stack* stack = stack_init(Msh->NbrTri); // Stack
-//   int color = 0; // Couleur initiale
-//   int iTri, tri, voi;
-//   int* ar_com = malloc(sizeof(int)*2); 
-
-//   // Initialiser les couleurs (non colorié == -1)
-//   for(int i = 1; i <= Msh->NbrTri; i++){Msh->TriRef[i] = -1;}
-
-//   for(iTri = 1; iTri <= Msh->NbrTri; iTri++)
-//   {
-//     if(Msh->TriRef[iTri] == -1) // Le triangle n'est pas colorié
-//     {
-//       // Initialiser la pile
-//       stack_add(stack, iTri);
-
-//       while(stack->top != 0)
-//       {
-//         // Récupérer la tête de pile
-//         tri = stack->array[stack->top];
-
-//         // On commence par colorier le triangle en tête de la stack
-//         Msh->TriRef[tri] = color; 
-//         stack_del(stack);
-        
-//         // On parcourt les voisins de tri
-//         for(int k = 0; k < 3; k++)
-//         {
-//           voi = Msh->TriVoi[tri][k];
-//           if(voi == 0){continue;}
-
-//           ar_com = intersect(Msh->Tri[tri], Msh->Tri[voi]); // Trouver l'arête commune entre les 2 triangles
-//           if(is_edge(Msh, ar_com, color) == 0)  // Si l'arête n'est pas dans un bord, ajouter le voisin à la stack
-//           {
-//             if(Msh->TriRef[voi] != -1){continue;} // Vérifier que le triangle n'est pas déjà colorié
-//             stack_add(stack, voi); // On l'ajoute
-//           }
-//           else{continue;}// Si l'arête est un bord, alors on ne l'ajoute pas à la stack et on continue (au début, top != 0)
-//         }
-
-//       }
-//       // En sortant du while, on a parcouru tout le sous-domaine, donc on passe à la couleur suivante et on recommence
-//       color++;
-//     }
-//   }
-  
-//   // On écrit directement dans l'attribut TriRef de Msh, donc pas d'objet à retourner.
-//   return; 
-// }
 int* intersect(int3d Tri1, int3d Tri2)
 {
   int* ar_com = malloc(sizeof(int)*2); ar_com[0] = 0; ar_com[1] = 0;
