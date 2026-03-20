@@ -36,6 +36,40 @@ int main(int argc, char* argv[])
   
   if(succeed != 1){printf("Erreur dans le calcul des voisins.\n"); return 0;}
 
+  int tri_ref = 1;
+
+  double* P = malloc(sizeof(double)*2);
+  P[0] = 0.75; P[1] = 0.12;
+
+  double* bary_itri1 = malloc(sizeof(double)*3);
+
+  bary_itri1 = compute_BC(Msh, tri_ref, P);
+
+  for(int i = 0; i < 3; i++){printf("barry %d == %f\n", i, bary_itri1[i]);}
+
+  double * P1;
+
+  // P1 = malloc(sizeof(double)*2); P1[0] = 0.25; P1[1] = 0.12;
+
+  // int true = is_point_localised(Msh, tri_ref, P1);
+  // int false = is_point_localised(Msh, tri_ref, P);
+
+  // printf("\ntrue == %d\nfalse == %d\n", true, false);
+
+  int vert1 = 1, vert2 = 2;
+
+  int voi = identify_voi(Msh, tri_ref, vert1, vert2);
+
+  printf("vert1 : %d,\nvert2 : %d\n",vert1, vert2);
+  printf("\nvoi : %d", voi);
+
+  int loc_P = localising(Msh, P);
+
+  printf("Point P = (%f,%f) localisé dans le triangle %d\n", P[0], P[1],loc_P);
+
+  return 0;
+
+
   coloriage_magique(Msh);
   for(int i = 1; i <= Msh->NbrTri; i++){printf("%d : %d\n",i,Msh->TriRef[i]);}
   msh_write(Msh, "colored.mesh");

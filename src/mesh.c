@@ -656,6 +656,7 @@ void coloriage_magique(Mesh* Msh)
   /*
     A corriger : remplacer int* stack par stack* stack et réadapter l'algorithme en conséquence
   */
+ 
   int* stack = malloc(sizeof(int) * Msh->NbrTri); stack[0] = 0; // stack* stack = stack_init(Msh->NbrTri);
   int top = 0;
   int color = 0;
@@ -729,6 +730,7 @@ int* intersect(int3d Tri1, int3d Tri2)
 
   return ar_com;
 }
+
 int is_edge(Mesh* M, int* id_vert, int color)
 {
   int found = 0;
@@ -963,6 +965,109 @@ double qual2(Mesh* M, int idTri)
   return alpha2*h_max/rho; 
 }
 
-  // c0[0] = M->Crd[loc_c1][0]; c0[1] = M->Crd[loc_c1][1]; // Ver1
-  // c1[0] = M->Crd[loc_c2][0]; c1[1] = M->Crd[loc_c2][1]; // Ver2
-  // c2[0] = M->Crd[loc_c3][0]; c2[1] = M->Crd[loc_c2][1]; // Ver3
+// Localisation d'un point dans le maillage
+double* compute_BC(Mesh* Msh, int id_tri, double* P)
+{
+  /*Calcul des coordonnées barycentriques d'un point pour un triangle d'identifiant id_tri dans Msh un maillage.*/
+ 
+  double* P0 = malloc(sizeof(double2d));
+  double* P1 = malloc(sizeof(double2d));
+  double* P2 = malloc(sizeof(double2d));
+  
+  // Récupérer les identifiants de chaque sommets du triangle
+  int id_vert0 = Msh->Tri[id_tri][0]; 
+  int id_vert1 = Msh->Tri[id_tri][1];
+  int id_vert2 = Msh->Tri[id_tri][2];
+  
+  // Récupérer les coordonnées de chaque points
+  P0[0] = Msh->Crd[id_vert0][0]; P0[1] = Msh->Crd[id_vert0][1];
+  P1[0] = Msh->Crd[id_vert1][0]; P1[1] = Msh->Crd[id_vert1][1];
+  P2[0] = Msh->Crd[id_vert2][0]; P2[1] = Msh->Crd[id_vert2][1];
+
+  // Calcul effectif des coordonnées barycentrique
+  double vol_tri =  0.5*((P1[0] - P0[0])*(P2[1] - P0[1]) - (P2[0] - P0[0])*(P1[1] - P0[1]));
+  if(vol_tri <= 0){printf("Triangle invalide.\n"); return NULL;}
+
+  double* Coord_bary = malloc(sizeof(double)*3);
+  Coord_bary[0] = 0; Coord_bary[1] = 0; Coord_bary[2] = 0;
+
+  Coord_bary[0] = (0.5/vol_tri)*((P1[0] - P[0])*(P2[1] - P[1]) - (P2[0] - P[0])*(P1[1] - P[1])); // |P P1 P2 |
+  Coord_bary[1] = (0.5/vol_tri)*((P[0] - P0[0])*(P2[1] - P0[1]) - (P2[0] - P0[0])*(P[1] - P0[1])); // |P0 P P2|
+  Coord_bary[2] = (0.5/vol_tri)*((P1[0] - P0[0])*(P[1] - P0[1]) - (P[0] - P0[0])*(P1[1] - P0[1])); // |P0 P1 P|
+
+  free(P0);free(P1);free(P2);
+  return Coord_bary;
+}
+int is_point_localised(Mesh* Msh, int id_tri, double* P)
+{
+  /* return 0 --> Le point n'est pas dans le triangle, return 1 --> Le point est dans le triangle */
+  int k = 0; 
+
+  double* Coord_bary_P = compute_BC(Msh, id_tri, P);
+
+  while(k < 3)
+  {
+    if(Coord_bary_P[k] < 0){free(Coord_bary_P);return 0;}
+    else{k++;}
+  }
+
+  free(Coord_bary_P);
+  return 1;
+}
+int identify_voi(Mesh* Msh,int id_tri, int vert1, int vert2)
+{
+  /*Identifier le voisin du triangle id_tri du maillage Msh partageant les sommet vert1 et vert2.*/
+
+  int voi = 0;
+
+  for(int i = 0; i < 3; i++)
+  {
+    voi = Msh->TriVoi[id_tri][i];  
+    if ((Msh->Tri[voi][0] == vert1 && Msh->Tri[voi][1] == vert2) || (Msh->Tri[voi][0] == vert2 && Msh->Tri[voi][1] == vert1)){return voi;}
+    if ((Msh->Tri[voi][1] == vert1 && Msh->Tri[voi][2] == vert2) || (Msh->Tri[voi][1] == vert2 && Msh->Tri[voi][2] == vert1)){return voi;}
+    if ((Msh->Tri[voi][2] == vert1 && Msh->Tri[voi][0] == vert2) || (Msh->Tri[voi][2] == vert2 && Msh->Tri[voi][0] == vert1)){return voi;}
+  }
+
+  printf("L'arête (%d,%d) ne semble partagée par aucun des voisins de %d, il doit y avoir une erreur...\n", vert1, vert2, id_tri);
+  return -1;
+}
+int localising(Mesh* Msh, double* P)
+{
+  /*Pour l'instant, on fait l'hypothèse que le maillage est convexe.*/
+  
+  int itri = 1, count = 0;
+  double* bary = malloc(sizeof(double)*3); for(int i = 0; i < 3; i++){bary[i] = 0;} 
+
+  while(is_point_localised(Msh, itri, P) != 1) // Tant que le point n'est pas dans le triangle itri
+  {
+    // On récupère les coordonnées barycentriques
+    bary = compute_BC(Msh, itri, P);
+
+    // Les calculs conditionnels ci-dessus dépendent fortement de l'ordre dans lequel les beta0, beta1 et beta2 sont stockés
+    if(bary[0] < 0)
+    {
+      itri = identify_voi(Msh, itri, Msh->Tri[itri][1], Msh->Tri[itri][2]); // Assigner le bon voisin
+      if(itri == -1){printf("Erreur dans l'idenfication du voinsin.\n");exit(-1);}
+      for(int i = 0; i < 3; i++){bary[i] = 0;} // Réinitialiser le tableau des coordonnées barycentriques par sécurité
+    }
+    
+    if(bary[0] >= 0 && bary[1] < 0)
+    {
+      itri = identify_voi(Msh,itri,Msh->Tri[itri][0], Msh->Tri[itri][2]);
+      if(itri == -1){printf("Erreur dans l'idenfication du voinsin.\n");exit(-1);}
+      for(int i = 0; i < 3; i++){bary[i] = 0;} 
+    }
+    if(bary[0] >= 0 && bary[1] >= 0)
+    {
+      itri = identify_voi(Msh, itri, Msh->Tri[itri][0], Msh->Tri[itri][1]);
+      if(itri == -1){printf("Erreur dans l'idenfication du voinsin.\n");exit(-1);}
+      for(int i = 0; i < 3; i++){bary[i] = 0;} 
+    }
+    count++;
+  }
+
+  printf("Point localisé en %d étape(s).\n", count);
+  free(bary);
+
+  return itri;
+}

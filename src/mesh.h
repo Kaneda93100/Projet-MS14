@@ -145,3 +145,9 @@ double qual2(Mesh* M, int idTri);
 int msh_write2dmetric(char* file, int nmetric, double3d* metric);
 int msh_write2dfield_Triangles(char* file, int nfield, double* field);
 int msh_write2dfield_Vertices(char* file, int nfield, double* field);
+
+// Delaunay, insertion et cavités
+double* compute_BC(Mesh*, int, double*); // Calcul des coordonnées barycentrique
+int is_point_localised(Mesh*, int, double*); // Savoir si le point est dans un triangle
+int identify_voi(Mesh*,int, int, int); // Identifier le triangle voisin partageant la même arête
+int localising(Mesh*, double*); // Localiser le points dans un maillage
