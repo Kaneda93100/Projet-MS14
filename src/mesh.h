@@ -151,3 +151,8 @@ double* compute_BC(Mesh*, int, double*); // Calcul des coordonnées barycentriqu
 int is_point_localised(Mesh*, int, double*); // Savoir si le point est dans un triangle
 int identify_voi(Mesh*,int, int, int); // Identifier le triangle voisin partageant la même arête
 int localising(Mesh*, double*); // Localiser le points dans un maillage
+
+double det_tri(Mesh*, int); // Calculer l'aire signée d'un triangle
+double circ_circle_ray(Mesh*, int); // Calculer le rayon du cercle circonscrit
+int* centre_circ_circle(Mesh*, int); // Calculer le centre du cercle circonscrit
+int empty_sphere_criterion(Mesh*, int, double*);
