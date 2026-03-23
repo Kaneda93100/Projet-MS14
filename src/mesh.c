@@ -663,7 +663,6 @@ void coloriage_magique(Mesh* Msh)
   int color = 0;
   int iTri, tri, voi;
 
-  int check = 0;
   int* ar_com = malloc(sizeof(int)*2); 
   // Initialiser les couleurs (non colorié == -1)
   for(int i = 1; i <= Msh->NbrTri; i++){Msh->TriRef[i] = -1;}
@@ -1019,8 +1018,9 @@ int identify_voi(Mesh* Msh,int id_tri, int vert1, int vert2)
 
   int voi = 0;
 
-  for(int i = 0; i < 3; i++)
+  for(int i = 0; i < 3; i++) // parcourir chaque voisin du triangle
   {
+    if(Msh->TriVoi[id_tri][i] == 0){continue;}
     voi = Msh->TriVoi[id_tri][i];  
     if ((Msh->Tri[voi][0] == vert1 && Msh->Tri[voi][1] == vert2) || (Msh->Tri[voi][0] == vert2 && Msh->Tri[voi][1] == vert1)){return voi;}
     if ((Msh->Tri[voi][1] == vert1 && Msh->Tri[voi][2] == vert2) || (Msh->Tri[voi][1] == vert2 && Msh->Tri[voi][2] == vert1)){return voi;}
@@ -1049,19 +1049,22 @@ int localising(Mesh* Msh, double* P)
       if(itri == -1){printf("Erreur dans l'idenfication du voinsin.\n");exit(-1);}
       for(int i = 0; i < 3; i++){bary[i] = 0;} // Réinitialiser le tableau des coordonnées barycentriques par sécurité
     }
-    
-    if(bary[0] >= 0 && bary[1] < 0)
+    else 
     {
-      itri = identify_voi(Msh,itri,Msh->Tri[itri][0], Msh->Tri[itri][2]);
-      if(itri == -1){printf("Erreur dans l'idenfication du voinsin.\n");exit(-1);}
-      for(int i = 0; i < 3; i++){bary[i] = 0;} 
+      if(bary[0] >= 0 && bary[1] < 0)
+      {
+        itri = identify_voi(Msh,itri,Msh->Tri[itri][0], Msh->Tri[itri][2]);
+        if(itri == -1){printf("Erreur dans l'idenfication du voinsin.\n");exit(-1);}
+        for(int i = 0; i < 3; i++){bary[i] = 0;} 
+      }
+      if(bary[0] >= 0 && bary[1] >= 0)
+      {
+        itri = identify_voi(Msh, itri, Msh->Tri[itri][0], Msh->Tri[itri][1]);
+        if(itri == -1){printf("Erreur dans l'idenfication du voinsin.\n");exit(-1);}
+        for(int i = 0; i < 3; i++){bary[i] = 0;} 
+      }
     }
-    if(bary[0] >= 0 && bary[1] >= 0)
-    {
-      itri = identify_voi(Msh, itri, Msh->Tri[itri][0], Msh->Tri[itri][1]);
-      if(itri == -1){printf("Erreur dans l'idenfication du voinsin.\n");exit(-1);}
-      for(int i = 0; i < 3; i++){bary[i] = 0;} 
-    }
+
     count++;
   }
 
@@ -1082,7 +1085,6 @@ double det_tri(Mesh* Msh, int id_tri)
   
   // Récupérer les coordonnée
   int loc_c0 = Msh->Tri[id_tri][0];int loc_c1 = Msh->Tri[id_tri][1];int loc_c2 = Msh->Tri[id_tri][2];
-  int3d L_loc = {loc_c0, loc_c1, loc_c2};
 
   double V = 0.5 * ((Msh->Crd[loc_c1][0]- Msh->Crd[loc_c0][0])*(Msh->Crd[loc_c2][1] - Msh->Crd[loc_c0][1])
                    -(Msh->Crd[loc_c2][0] - Msh->Crd[loc_c0][0])*(Msh->Crd[loc_c1][1] - Msh->Crd[loc_c0][1])); // Aire
@@ -1109,7 +1111,7 @@ double circ_circle_ray(Mesh* Msh, int id_tri)
 
   return ray;
 }
-int* centre_circ_circle(Mesh* Msh, int id_tri)
+double* centre_circ_circle(Mesh* Msh, int id_tri)
 {
   /* On calcule ici :
         | x0**2 + y0**2  x0  1 |
@@ -1140,15 +1142,19 @@ int* centre_circ_circle(Mesh* Msh, int id_tri)
   
   // Calcul des valeurs de la première colonnes
   double a = pow(P0[0],2) + pow(P0[1],2), b = pow(P1[0],2) + pow(P1[1],2), c = pow(P2[0],2) + pow(P2[1],2);
-  free(P0); free(P1); free(P2);
+
+  // Calcul de l'air du triangle : 0.5*det(tri)
+  double v = det_tri(Msh, id_tri);
+  v = (v < 0) ? -v : v; // prendre la valeur absolue
 
   // Calcul de x_O et y_O
-  double x_O = a*(P0[1] - P1[1]) - b*(P0[1] - P2[1]) + c*(P0[1] - P1[1]);
-  double y_O = a*(P0[0] - P1[0]) - b*(P0[0] - P2[0]) + c*(P0[0] - P1[0]);
+  double x_O = (1/(4*v)) * (a*(P1[1] - P2[1]) - b*(P0[1] - P2[1]) + c*(P0[1] - P1[1]));
+  double y_O = (-1/(4*v)) * (a*(P1[0] - P2[0]) - b*(P0[0] - P2[0]) + c*(P0[0] - P1[0]));
 
   double* centre = malloc(sizeof(double)*2);
   centre[0] = x_O; centre[1] = y_O;
 
+  free(P0); free(P1); free(P2);
   return centre;
 }
 int empty_sphere_criterion(Mesh* Msh, int id_tri, double* P)
@@ -1158,7 +1164,7 @@ int empty_sphere_criterion(Mesh* Msh, int id_tri, double* P)
     d'identifiant id_tri dans le maillage Msh.
 
     Pour chaque voisin du triangle id_tri, on calcul le centre et le rayon du cercle circonscrit et on vérifie que la
-    distance en P et le centre est supérieur au rayon. Si c'est le cas, alors la int bool == 1, sinon bool == 0.
+    distance en P et le centre est supérieur au rayon. Si c'est le cas, alors int bool == 1, sinon bool == 0.
   */
 
   // Init
@@ -1176,13 +1182,20 @@ int empty_sphere_criterion(Mesh* Msh, int id_tri, double* P)
 }
 
 // Insertion d'un point avec création de sa cavité suivant le critère de Delaunay et mise à jour du maillage
+void push_NbrVerMax(Mesh* Msh)
+{
+  /*Mettre à jour le nombre de point maximum dans le maillage.*/
+
+  Msh->NbrVerMax++;
+  return;
+}
 int* neighors_for_delaunay(Mesh* Msh, int id_tri)
 {
-  /*Sélectionner les triangles qui vont passer le test de Delaunay, 13 en tout.*/
+  /*Sélectionner les triangles qui vont passer le test de Delaunay, 15 en tout.*/
   int voi1 = 0, voi2 = 0,  voi3 = 0, index = 0; 
   int bool = 0; 
 
-  int* cavity = malloc(sizeof(int)*14);
+  int* cavity = malloc(sizeof(int)*15);
   for(int i = 0; i < 15; i++){cavity[i] = 0;}
 
   /*
@@ -1192,33 +1205,40 @@ int* neighors_for_delaunay(Mesh* Msh, int id_tri)
   */
   for(int i = 0; i < 3; i++)
   { 
-    voi1 = Msh->Tri[id_tri][i];         // Voisin d'ordre 1
+    voi1 = Msh->TriVoi[id_tri][i];         // Voisin d'ordre 1
     for(int j = 0; j < 3; j++)
     {
-      voi2 = Msh->Tri[voi1][j];         // Voisin d'ordre 2
+      voi2 = Msh->TriVoi[voi1][j];         // Voisin d'ordre 2
       for(int k = 0; k < 3; k++)
       {
-        voi3 = Msh->Tri[voi2][j];      // Voisin d'odre 3
-        if(voi3 == 0){continue;}       // Triangle au bord du maillage
-        index = 3*i +3*j + k;
+        voi3 = Msh->TriVoi[voi2][k];      // Voisin d'odre 3
+        if(voi3 == 0){continue;}          // Triangle au bord du maillage
+        index++;
 
         // Vérifier que le triangle n'a pas déjà été stocké
         bool = 0; // bool == 0 => le triangle n'est pas encore stocké, bool == 1 => le triangle est déjà stocké
         for(int l = 0; l < index; l++) 
         {
-          if(cavity[l] = voi3){bool = 1; break;}
+          if(cavity[l] == voi3){bool = 1; break;}
         }
-        if(bool == 0){cavity[index] = voi3;}
-        else{continue;}
+        if(bool == 0){cavity[index] = voi3;printf("\n%d : %d\n", index, cavity[index]);index++;}
+        else{printf("\n%d : %d\n", index, cavity[index]);index++;continue;}
       }
     }
   }
 
   return cavity;
 }
+int* compute_cavity(Mesh* Msh, int id_tri)
+{
+  stack* stack = stack_init(20);
+
+}
+
 void insertion(Mesh* Msh, double* P)
 { 
-  if(Msh->NbrVerMax+1 > Msh->NbrVerMax){printf("Nombre de points de maillage autorisé dépassé. Le maillage ne sera pas modifié.\n"); return;}
+  /*Marche pas terrible... A ignorer.*/
+  if(Msh->NbrVer+1 > Msh->NbrVerMax){printf("Nombre de points de maillage autorisé dépassé. Le maillage ne sera pas modifié.\n"); return;}
   // Localiser le point P dans le maillage
   int tri_P = localising(Msh, P);
 
@@ -1285,7 +1305,7 @@ void insertion(Mesh* Msh, double* P)
     else
     {
       realloc(Msh->Tri, sizeof(int3d));
-      if(det_tri(Msh->Crd[ar_com[0]], Msh->Crd[ar_com[1]], P) < 0) 
+      if(det_tri_points(Msh->Crd[ar_com[0]], Msh->Crd[ar_com[1]], P) < 0) 
       {
         // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
         Msh->Tri[Msh->NbrTri+1][0] = ar_com[0];

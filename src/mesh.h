@@ -145,6 +145,7 @@ double qual2(Mesh* M, int idTri);
 int msh_write2dmetric(char* file, int nmetric, double3d* metric);
 int msh_write2dfield_Triangles(char* file, int nfield, double* field);
 int msh_write2dfield_Vertices(char* file, int nfield, double* field);
+void push_NbrVerMax(Mesh*); // Modifier le nombre de point maximal dans le maillage
 
 // Delaunay, insertion et cavités
 double* compute_BC(Mesh*, int, double*); // Calcul des coordonnées barycentrique
@@ -152,7 +153,11 @@ int is_point_localised(Mesh*, int, double*); // Savoir si le point est dans un t
 int identify_voi(Mesh*,int, int, int); // Identifier le triangle voisin partageant la même arête
 int localising(Mesh*, double*); // Localiser le points dans un maillage
 
+double det_tri_points(double*,double*,double*);
 double det_tri(Mesh*, int); // Calculer l'aire signée d'un triangle
 double circ_circle_ray(Mesh*, int); // Calculer le rayon du cercle circonscrit
-int* centre_circ_circle(Mesh*, int); // Calculer le centre du cercle circonscrit
-int empty_sphere_criterion(Mesh*, int, double*);
+double* centre_circ_circle(Mesh*, int); // Calculer le centre du cercle circonscrit
+int empty_sphere_criterion(Mesh*, int, double*); // Critère de la sphère vide
+
+int* neighors_for_delaunay(Mesh*, int);
+void insertion(Mesh*, double*);

@@ -33,6 +33,15 @@ int main(int argc, char* argv[])
 
   int succeed = msh_neighbors(Msh);
   printf("%d", succeed);
+
+  double ray = circ_circle_ray(Msh, 1);
+  printf("Rayon du cercle circonscrit du triangle [P0 = (%f,%f), P1 = (%f,%f), P2 = (%f,%f)]\nray = %f",Msh->Crd[Msh->Tri[1][0]][0], Msh->Crd[Msh->Tri[1][0]][1]
+                                                                                                       ,Msh->Crd[Msh->Tri[1][1]][0], Msh->Crd[Msh->Tri[1][1]][1] 
+                                                                                                       ,Msh->Crd[Msh->Tri[1][2]][0], Msh->Crd[Msh->Tri[1][2]][1]
+                                                                                                       ,ray);
+
+  double* centre = centre_circ_circle(Msh, 1);
+  printf("\nCentre du cercle circonscrit de tri_equi : (%f,%f)\n", centre[0], centre[1]);
   
   if(succeed != 1){printf("Erreur dans le calcul des voisins.\n"); return 0;}
 
@@ -40,32 +49,53 @@ int main(int argc, char* argv[])
 
   double* P = malloc(sizeof(double)*2);
   P[0] = 0.75; P[1] = 0.12;
+  
+  int* cavity = neighors_for_delaunay(Msh,5);
+  
+  for(int i = 0; i < 15; i++)
+  {
+    printf("Candidat %d : %d\n", i+1, cavity[i]);
+  }
+  
+  return 0;
+  
+  printf("\nMsh->NbrVerMax current : %d", Msh->NbrVerMax);
+  push_NbrVerMax(Msh);
+  printf("\nMsh->NbrVerMax updated : %d", Msh->NbrVerMax);
 
-  double* bary_itri1 = malloc(sizeof(double)*3);
+  insertion(Msh,P);
+  for(int i = 1; i <= Msh->NbrVer; i++)
+  {
+    printf("\nNoeud %d : (%f,%f)\n", i, Msh->Crd[i][0], Msh->Crd[i][0]);
+  }
+  for(int i = 1; i <= Msh->NbrTriMax; i++)
+  {
+    printf("\nTriangle numéro %d : (%d,%d,%d)\n", i, Msh->Tri[i][0]
+                                                   , Msh->Tri[i][1]
+                                                   , Msh->Tri[i][2]);
+  }
 
-  bary_itri1 = compute_BC(Msh, tri_ref, P);
-
-  for(int i = 0; i < 3; i++){printf("barry %d == %f\n", i, bary_itri1[i]);}
-
-  double * P1;
-
+  // int delaunay_test_4 = empty_sphere_criterion(Msh, 4, P);
+  // printf("Résultat pour itri == 3 : %d", delaunay_test_4);
+  // double* alpha = malloc(sizeof(double)*2); alpha[0] = 0.65; alpha[1] = 0.15;
+  // int pos = localising(Msh, alpha);
+  // printf("Le point (%f,%f) est localisé dans le triangle %d\n", alpha[0], alpha[1], pos);
+  // int delaunay_test_2 = empty_sphere_criterion(Msh, 2, alpha);
+  // printf("Résultat pour itri == 2 : %d \n", delaunay_test_2);
+  // double* bary_itri1 = malloc(sizeof(double)*3);
+  // bary_itri1 = compute_BC(Msh, tri_ref, P);
+  // for(int i = 0; i < 3; i++){printf("barry %d == %f\n", i, bary_itri1[i]);}
+  // double * P1;
   // P1 = malloc(sizeof(double)*2); P1[0] = 0.25; P1[1] = 0.12;
-
   // int true = is_point_localised(Msh, tri_ref, P1);
   // int false = is_point_localised(Msh, tri_ref, P);
-
   // printf("\ntrue == %d\nfalse == %d\n", true, false);
-
-  int vert1 = 1, vert2 = 2;
-
-  int voi = identify_voi(Msh, tri_ref, vert1, vert2);
-
-  printf("vert1 : %d,\nvert2 : %d\n",vert1, vert2);
-  printf("\nvoi : %d", voi);
-
-  int loc_P = localising(Msh, P);
-
-  printf("Point P = (%f,%f) localisé dans le triangle %d\n", P[0], P[1],loc_P);
+  // int vert1 = 1, vert2 = 2;
+  // int voi = identify_voi(Msh, tri_ref, vert1, vert2);
+  // printf("vert1 : %d,\nvert2 : %d\n",vert1, vert2);
+  // printf("\nvoi : %d", voi);
+  // int loc_P = localising(Msh, P);
+  // printf("Point P = (%f,%f) localisé dans le triangle %d\n", P[0], P[1],loc_P);
 
   return 0;
 
