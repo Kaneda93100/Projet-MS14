@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
 
 
   double* P = malloc(sizeof(double)*2);
-  P[0] = 0.55; P[1] = 0.125;
+  P[0] = 0.45; P[1] = 0.125;
   
   int* cavity = compute_cavity(Msh, 5, P);
   for(int i = 0; i < 20; i++){printf("\n%d : %d", i, cavity[i]);}

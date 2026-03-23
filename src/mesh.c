@@ -1189,51 +1189,12 @@ void push_NbrVerMax(Mesh* Msh)
   Msh->NbrVerMax++;
   return;
 }
-int* neighors_for_delaunay(Mesh* Msh, int id_tri)
-{
-  /*Sélectionner les triangles qui vont passer le test de Delaunay, 15 en tout.*/
-  int voi1 = 0, voi2 = 0,  voi3 = 0, index = 0; 
-  int bool = 0; 
-
-  int* cavity = malloc(sizeof(int)*15);
-  for(int i = 0; i < 15; i++){cavity[i] = 0;}
-
-  /*
-    voi1 --> voisins direct de id_tri (Voisins d'ordre 1)
-    voi2 --> voisins d'un voisin direct de id_tri (Voisins d'ordre 2)
-    voi3 --> voisins d'un voisin d'un voisin directe de id_tri (Voisins d'ordre 3)
-  */
-  for(int i = 0; i < 3; i++)
-  { 
-    voi1 = Msh->TriVoi[id_tri][i];         // Voisin d'ordre 1
-    for(int j = 0; j < 3; j++)
-    {
-      voi2 = Msh->TriVoi[voi1][j];         // Voisin d'ordre 2
-      for(int k = 0; k < 3; k++)
-      {
-        voi3 = Msh->TriVoi[voi2][k];      // Voisin d'odre 3
-        if(voi3 == 0){continue;}          // Triangle au bord du maillage
-        index++;
-
-        // Vérifier que le triangle n'a pas déjà été stocké
-        bool = 0; // bool == 0 => le triangle n'est pas encore stocké, bool == 1 => le triangle est déjà stocké
-        for(int l = 0; l < index; l++) 
-        {
-          if(cavity[l] == voi3){bool = 1; break;}
-        }
-        if(bool == 0){cavity[index] = voi3;printf("\n%d : %d\n", index, cavity[index]);index++;}
-        else{printf("\n%d : %d\n", index, cavity[index]);index++;continue;}
-      }
-    }
-  }
-
-  return cavity;
-}
 int* compute_cavity(Mesh* Msh, int id_tri, double* P)
 {
   int* cavity = malloc(sizeof(int)*20);
   int index = 0, tri = 0, already_stored = 0;
   
+  // Initialiser la stack
   stack* stack = stack_init(20);
   stack->top++;
   stack->array[1] = id_tri;
