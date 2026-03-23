@@ -159,5 +159,5 @@ double circ_circle_ray(Mesh*, int); // Calculer le rayon du cercle circonscrit
 double* centre_circ_circle(Mesh*, int); // Calculer le centre du cercle circonscrit
 int empty_sphere_criterion(Mesh*, int, double*); // Critère de la sphère vide
 
-int* neighors_for_delaunay(Mesh*, int);
+int* compute_cavity(Mesh*, int, double*);
 void insertion(Mesh*, double*);

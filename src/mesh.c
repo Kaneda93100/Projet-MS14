@@ -484,8 +484,8 @@ stack* stack_init(int size)
 {
   stack* s = malloc(sizeof(stack));
 
-  s->array = malloc(sizeof(int)*size);
-  for(int i = 0; i < s->size; i++){s->array[i] = 0;}
+  s->array = malloc(sizeof(int)*size+1);
+  for(int i = 0; i <= size; i++){s->array[i] = 0;}
 
   s->top = 0;
   s->size = size;
@@ -513,8 +513,8 @@ void stack_del(stack* s)
 }
 void stack_cout(stack* s)
 {
-  printf("Current top : %d\n", s->top);
-  for(int i = 0; i < s->top; i++){printf("%d : %d\n", i, s->array[i]);}
+  printf("\nCurrent top : %d\n", s->top);
+  for(int i = 0; i <= s->top; i++){printf("%d : %d\n", i, s->array[i]);}
   return;
 }
 
@@ -1229,15 +1229,48 @@ int* neighors_for_delaunay(Mesh* Msh, int id_tri)
 
   return cavity;
 }
-int* compute_cavity(Mesh* Msh, int id_tri)
+int* compute_cavity(Mesh* Msh, int id_tri, double* P)
 {
+  int* cavity = malloc(sizeof(int)*20);
+  int index = 0, tri = 0, already_stored = 0;
+  
   stack* stack = stack_init(20);
+  stack->top++;
+  stack->array[1] = id_tri;
+  stack_cout(stack);
 
+  while(stack->top!=0)
+  {
+    stack_cout(stack);
+    tri = stack->array[stack->top];
+    stack_del(stack);
+    for(int l = 0; l < index; l++)
+    {
+      if(cavity[l] == tri){already_stored = 1;}
+    }
+    
+    if(empty_sphere_criterion(Msh, tri, P) == 0) // Le point est dans le cercle circonscrit du triangle id_tri
+    {
+      if(already_stored == 0)
+      {
+        cavity[index] = tri;
+        printf("index %d : %d", index, cavity[index]);
+        index++;
+        for(int k = 0; k < 3; k++)
+        {
+          if(Msh->TriVoi[tri][k] != 0){stack_add(stack, Msh->TriVoi[tri][k]);}
+          else{continue;}
+        }
+      }
+      else{already_stored = 0;}
+    } 
+  }
+
+  return cavity;
 }
 
 void insertion(Mesh* Msh, double* P)
 { 
-  /*Marche pas terrible... A ignorer.*/
   if(Msh->NbrVer+1 > Msh->NbrVerMax){printf("Nombre de points de maillage autorisé dépassé. Le maillage ne sera pas modifié.\n"); return;}
   // Localiser le point P dans le maillage
   int tri_P = localising(Msh, P);

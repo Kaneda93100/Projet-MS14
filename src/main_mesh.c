@@ -45,16 +45,24 @@ int main(int argc, char* argv[])
   
   if(succeed != 1){printf("Erreur dans le calcul des voisins.\n"); return 0;}
 
-  int tri_ref = 1;
 
   double* P = malloc(sizeof(double)*2);
-  P[0] = 0.75; P[1] = 0.12;
+  P[0] = 0.55; P[1] = 0.125;
   
-  int* cavity = neighors_for_delaunay(Msh,5);
-  
-  for(int i = 0; i < 15; i++)
+  int* cavity = compute_cavity(Msh, 5, P);
+  for(int i = 0; i < 20; i++){printf("\n%d : %d", i, cavity[i]);}
+
+  for(int i = 1; i <= Msh->NbrTri; i++)
   {
-    printf("Candidat %d : %d\n", i+1, cavity[i]);
+    printf("\nTriangle %d : ", i);
+    if(empty_sphere_criterion(Msh, i, P) == 1)
+    {
+      printf("1\n");
+    }
+    else
+    {
+      printf("0\n");
+    }
   }
   
   return 0;
