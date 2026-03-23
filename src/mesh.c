@@ -1228,7 +1228,6 @@ int* compute_cavity(Mesh* Msh, int id_tri, double* P)
       else{already_stored = 0;}
     } 
   }
-  cavity[index] = index;
   for(int i = 0; i < stack->size; i++){printf("\n%d : %d\n", i, cavity[i]);}
   return cavity;
 }
@@ -1254,12 +1253,58 @@ void insertion(Mesh* Msh, double* P)
 
   // Calculer la cavité
   int* bat_cavity = compute_cavity(Msh, tri_P, P);
-  int k = 0, tri = 0;
-  while(bat_cavity[k+1] != 0)
-  {
-    k++;
+  
+  // Récupérer les noeuds de la cavité
+  int* ver_cav = malloc(sizeof(int)*20);
+  for(int i = 0; i < 20; i++){ver_cav[i] = 0;}
+  
+  int j = 0, already_stored = 0, tri = 0, ver = 0;
+  while(bat_cavity[tri] != 0)
+  { 
+    for(int l = 0; l < 3; l++)
+    {
+      ver = Msh->Tri[bat_cavity[tri]][l];
+      for(int m = 0; m < 3*j + l; m++)
+      {
+        if(ver == ver_cav[m]){already_stored = 1;}
+      }
+      if(already_stored == 1){continue;} // Sommet déjà stocké
+      else
+      {
+        ver_cav[j] = ver;
+        j++;
+      }
+    }
+    tri++;
   }
-  k = cavity[k];
+
+  /* 
+    tri == nombre de triangle que l'on a retiré dans le maillage, j == nombre de triangle qu'il faut ajouter
+    j - tri == nombre de nouvels emplacement à créer
+  */ 
+
+  realloc(Msh->Tri, sizeof(int3d)*(j-tri));
+  int k = 0;
+  while(k < j)
+  {
+    if(k <= j-tri)
+    {
+      if(det_tri_points(Msh->Crd[ver_cav[k]], Msh->Crd[ver_cav[k+1]], P) < 0) 
+      {
+       // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
+  //       Msh->Tri[test_delaunay[i][0]][0] = ar_com[0];
+  //       Msh->Tri[test_delaunay[i][0]][1] = Msh->NbrVer+1;
+  //       Msh->Tri[test_delaunay[i][0]][2] = ar_com[1];
+  //     }
+  //     else
+  //     {
+  //       // Triangle (ar_com[0],ar_com[1],P) bien orienté, on peut l'ajouter tel quel
+  //       Msh->Tri[test_delaunay[i][0]][0] = ar_com[0];
+  //       Msh->Tri[test_delaunay[i][0]][1] = ar_com[1];
+  //       Msh->Tri[test_delaunay[i][0]][2] = Msh->NbrVer+1;
+  //     }
+    }
+  }
   
   // // Relier les points, ajouter les triangles et mettre le maillage à jour
   // int k = 0, tri =;
