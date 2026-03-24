@@ -484,7 +484,7 @@ stack* stack_init(int size)
 {
   stack* s = malloc(sizeof(stack));
 
-  s->array = malloc(sizeof(int)*size+1);
+  s->array = malloc(sizeof(int)*(size+1));
   for(int i = 0; i <= size; i++){s->array[i] = 0;}
 
   s->top = 0;
@@ -1068,7 +1068,7 @@ int localising(Mesh* Msh, double* P)
     count++;
   }
 
-  printf("Point localisé en %d étape(s).\n", count);
+  printf("\nPoint localisé en %d étape(s).\n", count);
   free(bary);
 
   return itri;
@@ -1195,7 +1195,7 @@ int* compute_cavity(Mesh* Msh, int id_tri, double* P)
   int* cavity = malloc(sizeof(int)*20); // Array qui stocvkera les indices des triangles qui seront dans la cavité
   for(int i = 0; i < 20; i++){cavity[i] = 0;} // Mettre le array à 0 (ce sera utile dans la fonction insertion)
   int index = 0, tri = 0, already_stored = 0; 
-  
+
   // Initialiser la stack
   stack* stack = stack_init(20);
   stack->top++;
@@ -1234,31 +1234,36 @@ int* compute_cavity(Mesh* Msh, int id_tri, double* P)
 void insertion(Mesh* Msh, double* P)
 { 
   if(Msh->NbrVer+1 > Msh->NbrVerMax){printf("Nombre de points de maillage autorisé dépassé. Le maillage ne sera pas modifié.\n"); return;}
+  
+  int vert = 0, j = 0, already_stored = 0, tri = 0, ver = 0; 
+  int* bat_cavity = NULL;
+
   // Localiser le point P dans le maillage
   int tri_P = localising(Msh, P);
 
   // Vérifier que le point n'est pas déjà dans le maillage (peut-être considérer les coordonnées barycentriques, mais je pense que ça ne fait pas beaucoup de différences en terme de perf).
   for(int i = 0; i < 3; i++)
   {
-    int vert = Msh->Tri[tri_P][i];
+    vert = Msh->Tri[tri_P][i];
     if((Msh->Crd[vert][0] == P[0] && Msh->Crd[vert][1] == P[1]) || (Msh->Crd[vert][0] == P[1] && Msh->Crd[vert][1] == P[0]))
     {
       printf("Le point P = (%f,%f) est déjà dans le maillage. Ce dernier n'a par conséquent pas été mit à jours.\n", P[0],P[1]);
+      return;
     }
   }
 
   // Ajouter le nouveau point au maillage
-  realloc(Msh->Crd, 1);
+  double2d* tmp = realloc(Msh->Crd,  sizeof(double2d)*(Msh->NbrVer + 1));
+  Msh->Crd = tmp;
   Msh->Crd[Msh->NbrVer+1][0] = P[0]; Msh->Crd[Msh->NbrVer+1][1] = P[1];
 
   // Calculer la cavité
-  int* bat_cavity = compute_cavity(Msh, tri_P, P);
+  bat_cavity = compute_cavity(Msh, tri_P, P);
   
   // Récupérer les noeuds de la cavité
   int* ver_cav = malloc(sizeof(int)*20);
   for(int i = 0; i < 20; i++){ver_cav[i] = 0;}
   
-  int j = 0, already_stored = 0, tri = 0, ver = 0;
   while(bat_cavity[tri] != 0)
   { 
     for(int l = 0; l < 3; l++)
@@ -1272,6 +1277,7 @@ void insertion(Mesh* Msh, double* P)
       else
       {
         ver_cav[j] = ver;
+        printf("\nindex %d : %d\n", j, ver_cav[j]);
         j++;
       }
     }
@@ -1285,78 +1291,57 @@ void insertion(Mesh* Msh, double* P)
 
   realloc(Msh->Tri, sizeof(int3d)*(j-tri));
   int k = 0;
-  while(k < j)
+  while(k < j-1)
   {
-    if(k <= j-tri)
+    if(k < tri)
     {
-      if(det_tri_points(Msh->Crd[ver_cav[k]], Msh->Crd[ver_cav[k+1]], P) < 0) 
+      if(det_tri_points(Msh->Crd[ver_cav[k]], Msh->Crd[ver_cav[k+1]], P) < 0)  // Vérifier que le triangle est bien orienté
       {
-       // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
-  //       Msh->Tri[test_delaunay[i][0]][0] = ar_com[0];
-  //       Msh->Tri[test_delaunay[i][0]][1] = Msh->NbrVer+1;
-  //       Msh->Tri[test_delaunay[i][0]][2] = ar_com[1];
-  //     }
-  //     else
-  //     {
-  //       // Triangle (ar_com[0],ar_com[1],P) bien orienté, on peut l'ajouter tel quel
-  //       Msh->Tri[test_delaunay[i][0]][0] = ar_com[0];
-  //       Msh->Tri[test_delaunay[i][0]][1] = ar_com[1];
-  //       Msh->Tri[test_delaunay[i][0]][2] = Msh->NbrVer+1;
-  //     }
+        // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
+        Msh->Tri[bat_cavity[k]][0] = ver_cav[k];
+        Msh->Tri[bat_cavity[k]][1] = Msh->NbrVer+1;
+        Msh->Tri[bat_cavity[k]][2] = ver_cav[k+1];
+        k++;
+      }
+      else
+      {
+        // Triangle (ar_com[0],ar_com[1],P) bien orienté, on peut l'ajouter tel quel
+        Msh->Tri[bat_cavity[k]][0] = ver_cav[k];
+        Msh->Tri[bat_cavity[k]][1] = ver_cav[k+1];
+        Msh->Tri[bat_cavity[k]][2] = Msh->NbrVer+1;
+        k++;
+      }
+    }
+    else 
+    {
+      if(det_tri_points(Msh->Crd[ver_cav[k]], Msh->Crd[ver_cav[k]], P) < 0) 
+      {
+        // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
+        Msh->Tri[Msh->NbrTri+1][0] = ver_cav[k];
+        Msh->Tri[Msh->NbrTri+1][1] = Msh->NbrVer+1;
+        Msh->Tri[Msh->NbrTri+1][2] = ver_cav[k+1];
+        
+        // Mettre à jour le nombre de triangle dans le maillage
+        Msh->NbrTri++;
+        k++;
+      }
+      else
+      {
+        // Triangle (ar_com[0],ar_com[1],P) bien orienté, on peut l'ajouter tel quel
+        Msh->Tri[Msh->NbrTri+1][0] = ver_cav[k];
+        Msh->Tri[Msh->NbrTri+1][1] = ver_cav[k+1];
+        Msh->Tri[Msh->NbrTri+1][2] = Msh->NbrVer+1;
+
+        // Mettre à jour le nombre de triangle dans le maillage
+        Msh->NbrTri++;
+        k++;
+      }
     }
   }
-  
-  // // Relier les points, ajouter les triangles et mettre le maillage à jour
-  // int k = 0, tri =;
-  // for(int i = 0; i < 10; i++)
-  // {
-  //   int itri = test_delaunay[i][0];
-  //   if(test_delaunay[i][1] == 0){continue;} // Cas où le test a échoué
-    
-  //   // Identifier l'arête de la cavité
-  //   int* ar_com = intersect(Msh->Tri[tri_P], Msh->Tri[itri]);
 
-  //   // Ajouter le nouveau triangle au maillage
-  //   if(k <= count_delete_tri)
-  //   {
-  //     if(det_tri_points(Msh->Crd[ar_com[0]], Msh->Crd[ar_com[1]], P) < 0) 
-  //     {
-  //       // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
-  //       Msh->Tri[test_delaunay[i][0]][0] = ar_com[0];
-  //       Msh->Tri[test_delaunay[i][0]][1] = Msh->NbrVer+1;
-  //       Msh->Tri[test_delaunay[i][0]][2] = ar_com[1];
-  //     }
-  //     else
-  //     {
-  //       // Triangle (ar_com[0],ar_com[1],P) bien orienté, on peut l'ajouter tel quel
-  //       Msh->Tri[test_delaunay[i][0]][0] = ar_com[0];
-  //       Msh->Tri[test_delaunay[i][0]][1] = ar_com[1];
-  //       Msh->Tri[test_delaunay[i][0]][2] = Msh->NbrVer+1;
-  //     }
-  //     k++;
-  //   }
-  //   else
-  //   {
-  //     realloc(Msh->Tri, sizeof(int3d));
-  //     if(det_tri_points(Msh->Crd[ar_com[0]], Msh->Crd[ar_com[1]], P) < 0) 
-  //     {
-  //       // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
-  //       Msh->Tri[Msh->NbrTri+1][0] = ar_com[0];
-  //       Msh->Tri[Msh->NbrTri+1][1] = Msh->NbrVer+1;
-  //       Msh->Tri[Msh->NbrTri+1][2] = ar_com[1];
-  //     }
-  //     else
-  //     {
-  //       // Triangle (ar_com[0],ar_com[1],P) bien orienté, on peut l'ajouter tel quel
-  //       Msh->Tri[Msh->NbrTri+1][0] = ar_com[0];
-  //       Msh->Tri[Msh->NbrTri+1][1] = ar_com[1];
-  //       Msh->Tri[Msh->NbrTri+1][2] = Msh->NbrVer+1;
-  //     }
-  //     // Incrémentation du nombre de triangle
-  //     Msh->NbrTri++;
-  //   }
-  // }
-
+  // Mise à  jour final : on incrémente le nombre de noeud dans le maillage
   Msh->NbrVer++;
+  printf("\nLe point P = (%f,%f) à été inséré avec succès !\n", P[0], P[1]);
+    
   return;
 }

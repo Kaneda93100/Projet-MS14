@@ -34,6 +34,7 @@ int main(int argc, char* argv[])
   int succeed = msh_neighbors(Msh);
   printf("%d", succeed);
 
+  // Tests des fonctions de calcul du rayon du cercle circonscrit et de son centre.
   double ray = circ_circle_ray(Msh, 1);
   printf("Rayon du cercle circonscrit du triangle [P0 = (%f,%f), P1 = (%f,%f), P2 = (%f,%f)]\nray = %f",Msh->Crd[Msh->Tri[1][0]][0], Msh->Crd[Msh->Tri[1][0]][1]
                                                                                                        ,Msh->Crd[Msh->Tri[1][1]][0], Msh->Crd[Msh->Tri[1][1]][1] 
@@ -49,6 +50,7 @@ int main(int argc, char* argv[])
   double* P = malloc(sizeof(double)*2);
   P[0] = 0.45; P[1] = 0.125;
   
+  // Test de la fonction de calcul de la cavité
   int* cavity = compute_cavity(Msh, 5, P);
   for(int i = 0; i < 20; i++){printf("\n%d : %d", i, cavity[i]);}
 
@@ -65,16 +67,16 @@ int main(int argc, char* argv[])
     }
   }
   
-  return 0;
-  
+  // Test de la fonction d'insertion d'un point dans un maillage
   printf("\nMsh->NbrVerMax current : %d", Msh->NbrVerMax);
   push_NbrVerMax(Msh);
   printf("\nMsh->NbrVerMax updated : %d", Msh->NbrVerMax);
 
+
   insertion(Msh,P);
   for(int i = 1; i <= Msh->NbrVer; i++)
   {
-    printf("\nNoeud %d : (%f,%f)\n", i, Msh->Crd[i][0], Msh->Crd[i][0]);
+    printf("\nNoeud %d : (%f,%f)\n", i, Msh->Crd[i][0], Msh->Crd[i][1]);
   }
   for(int i = 1; i <= Msh->NbrTriMax; i++)
   {
