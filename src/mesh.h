@@ -89,11 +89,31 @@ typedef struct hash_table {
 
 } HashTable;
 
+typedef struct stack_edg
+{
+  int2d* list;
+  int size;
+  int top;
+} stack_edg;
+
+//--- Méthode sur les stack_edg
+stack_edg* stack_edg_init(int);
+void stack_edg_add(stack_edg*, int2d*);
+void stack_edg_del(stack_edg*);
+void stack_edg_cout(stack_edg*);
+
+
 typedef struct stack {
   int* array;
   int size;
   int top;
 } stack;
+
+//--- Méthode sur les stack
+stack* stack_init(int);
+void stack_add(stack*, int);
+void stack_del(stack*);
+void stack_cout(stack*);
 
 //--- Functions to be implemented
 int msh_boundingbox(Mesh* Msh); // compute the bouding box of the mesh
@@ -102,12 +122,6 @@ int msh_neighborsQ2(Mesh* Msh); // build TriVoi with the naive quadratic approac
 // Initialisation et construction des tables de hachages
 volatile HashTable* hash_init(int SizHead, int NbrMaxObj); // alloc and set htable ==> allocate Head, LstObj
 volatile HashTable* Hash_build(Mesh* Msh); // Construire la table de hachage
-
-//--- Méthode sur les stack
-stack* stack_init(int);
-void stack_add(stack*, int);
-void stack_del(stack*);
-void stack_cout(stack*);
 
 //--- Diverses méthodes sur les HashTable
 void hash_cout_head(volatile HashTable* hsh, int Key); // Afficher les éléments d'une tête
@@ -159,5 +173,5 @@ double circ_circle_ray(Mesh*, int); // Calculer le rayon du cercle circonscrit
 double* centre_circ_circle(Mesh*, int); // Calculer le centre du cercle circonscrit
 int empty_sphere_criterion(Mesh*, int, double*); // Critère de la sphère vide
 
-int* compute_cavity(Mesh*, int, double*);
+int2d* compute_cavity(Mesh*, int, double*);
 void insertion(Mesh*, double*);

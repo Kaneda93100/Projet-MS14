@@ -479,6 +479,46 @@ double Av_colision(volatile HashTable* hsh)
   return (double)TC/(double)NEH;
 }
 
+// Méthodes sur les stacks 2d
+stack_edg* stack_edg_init(int size)
+{
+  stack_edg* s = malloc(sizeof(stack_edg));
+
+  s->list = malloc(sizeof(int2d)*(size+1));
+  for(int i = 0; i <= size; i++){s->list[i][0] = 0; s->list[i][1] = 0;}
+
+  s->top = 0;
+  s->size = size;
+
+  return s;
+}
+void stack_edg_add(stack_edg* s, int2d* new)
+{
+  /* Ajoute un élément à la stack. */
+
+  s->top++;
+  s->list[s->top][0] = new[0];
+  s->list[s->top][1] = new[1];
+
+  return;
+}
+void stack_edg_del(stack_edg* s)
+{
+  /* Retire la tête de la stack */
+
+  s->list[s->top][0] = 0; 
+  s->list[s->top][1] = 0;
+  s->top--;
+
+  return;
+}
+void stack_edg_cout(stack_edg* s)
+{
+  printf("\nCurrent top : %d\n", s->top);
+  for(int i = 0; i <= s->top; i++){printf("\n%d : (%d,%d)\n", i, s->list[i][0], s->list[i][1]);}
+  return;
+}
+
 // Méthodes sur les stacks
 stack* stack_init(int size)
 {
@@ -1189,12 +1229,24 @@ void push_NbrVerMax(Mesh* Msh)
   Msh->NbrVerMax++;
   return;
 }
-int* compute_cavity(Mesh* Msh, int id_tri, double* P)
+int2d* compute_cavity(Mesh* Msh, int id_tri, double* P)
 {
   // Initialiser les variables qui seront utilisées
   int* cavity = malloc(sizeof(int)*20); // Array qui stocvkera les indices des triangles qui seront dans la cavité
   for(int i = 0; i < 20; i++){cavity[i] = 0;} // Mettre le array à 0 (ce sera utile dans la fonction insertion)
   int index = 0, tri = 0, already_stored = 0; 
+
+  int2d* cavity_edg = malloc(sizeof(int2d)*20);
+  for(int i = 0; i < 20; i++)
+  {
+    cavity_edg[i][0] = 0;
+    cavity_edg[i][1] = 0;
+  }
+  int index_edg = 0;
+
+  int2d* cavity_interior = malloc(sizeof(int2d)*20);
+  for(int i = 0; i < 20; i++){cavity_interior[i][0] = 0; cavity_interior[i][1] = 0;}
+  int index_interior = 0;
 
   // Initialiser la stack
   stack* stack = stack_init(20);
@@ -1220,128 +1272,197 @@ int* compute_cavity(Mesh* Msh, int id_tri, double* P)
         index++;
         for(int k = 0; k < 3; k++)
         {
-          // Empiler les voisins qui ne sont pas sur le bord
-          if(Msh->TriVoi[tri][k] != 0){stack_add(stack, Msh->TriVoi[tri][k]);}
+          // Empiler les voisins qui ne sont pas sur le bord et qui ne vérifient pas le critère de la sphère vide
+          if(Msh->TriVoi[tri][k] != 0 && empty_sphere_criterion(Msh, Msh->TriVoi[tri][k], P) == 0)
+          {
+            int voi = Msh->TriVoi[tri][k];
+            int* ar_com = intersect(Msh->Tri[tri],Msh->Tri[voi]);
+            cavity_interior[index_interior][0] = ar_com[0]; cavity_interior[index_interior][1] = ar_com[1];
+            index_interior++;
+
+            for(int edg_tri = 0; edg_tri < 3; edg_tri++)
+            {
+              if((ar_com[0] == Msh->Tri[tri][tri2edg[edg_tri][0]] && ar_com[1] == Msh->Tri[tri][tri2edg[edg_tri][1]]) || (ar_com[1] == Msh->Tri[tri][tri2edg[edg_tri][0]] && ar_com[0] == Msh->Tri[tri][tri2edg[edg_tri][1]]))
+              {
+                continue;
+              }
+              else
+              {
+                int already_stored_edg = 0, is_interior = 0;
+                for(int l = 0; l < index_edg; l++)
+                {
+                  if((cavity_edg[l][0] == Msh->Tri[tri][tri2edg[edg_tri][0]] && cavity_edg[l][1] == Msh->Tri[tri][tri2edg[edg_tri][1]]) || (cavity_edg[l][1] == Msh->Tri[tri][tri2edg[edg_tri][0]] && cavity_edg[l][0] == Msh->Tri[tri][tri2edg[edg_tri][1]]))
+                  {
+                    already_stored_edg = 1;
+                    break;
+                  }
+                }
+                for(int l = 0; l < index_interior; l++)
+                {
+                  if((cavity_edg[l][0] == Msh->Tri[tri][tri2edg[edg_tri][0]] && cavity_edg[l][1] == Msh->Tri[tri][tri2edg[edg_tri][1]]) || (cavity_interior[l][1] == Msh->Tri[tri][tri2edg[edg_tri][0]] && cavity_interior[l][0] == Msh->Tri[tri][tri2edg[edg_tri][1]]))
+                  {
+                    is_interior = 1;
+                    break;
+                  }
+                }
+                if(already_stored_edg == 0 && is_interior == 0)
+                {
+                  cavity_edg[index_edg][0] = Msh->Tri[tri][tri2edg[edg_tri][0]];
+                  cavity_edg[index_edg][1] = Msh->Tri[tri][tri2edg[edg_tri][1]];
+                  index_edg++;
+                }
+                else{already_stored = 0; already_stored_edg = 0;}
+              }
+            }
+            stack_add(stack, Msh->TriVoi[tri][k]);
+          }
           else{continue;}
         }
       }
       else{already_stored = 0;}
     } 
   }
-  for(int i = 0; i < stack->size; i++){printf("\n%d : %d\n", i, cavity[i]);}
-  return cavity;
+
+  int2d* tmp = realloc(cavity_edg, sizeof(int2d)*(index_edg+2));
+  tmp[index_edg][0] = index;      // Place libérée par les triangles supprimés
+  tmp[index_edg][1] = index_edg;  // Nombre de triangle crée par l'étoilement
+  tmp[index_edg+1][0] = 0; tmp[index_edg+1][1] = 0;
+  cavity_edg = tmp;
+
+  return cavity_edg;
 }
-void insertion(Mesh* Msh, double* P)
-{ 
-  if(Msh->NbrVer+1 > Msh->NbrVerMax){printf("Nombre de points de maillage autorisé dépassé. Le maillage ne sera pas modifié.\n"); return;}
+
+// void insertion(Mesh* Msh, double* P)
+// { 
+//   if(Msh->NbrVer+1 > Msh->NbrVerMax){printf("Nombre de points de maillage autorisé dépassé. Le maillage ne sera pas modifié.\n"); return;}
   
-  int vert = 0, j = 0, already_stored = 0, tri = 0, ver = 0; 
-  int* bat_cavity = NULL;
+//   int vert = 0, j = 0, already_stored = 0, tri = 0, ver = 0; 
+//   int2d* bat_cavity = NULL;
 
-  // Localiser le point P dans le maillage
-  int tri_P = localising(Msh, P);
+//   // Localiser le point P dans le maillage
+//   int tri_P = localising(Msh, P);
 
-  // Vérifier que le point n'est pas déjà dans le maillage (peut-être considérer les coordonnées barycentriques, mais je pense que ça ne fait pas beaucoup de différences en terme de perf).
-  for(int i = 0; i < 3; i++)
-  {
-    vert = Msh->Tri[tri_P][i];
-    if((Msh->Crd[vert][0] == P[0] && Msh->Crd[vert][1] == P[1]) || (Msh->Crd[vert][0] == P[1] && Msh->Crd[vert][1] == P[0]))
-    {
-      printf("Le point P = (%f,%f) est déjà dans le maillage. Ce dernier n'a par conséquent pas été mit à jours.\n", P[0],P[1]);
-      return;
-    }
-  }
+//   // Vérifier que le point n'est pas déjà dans le maillage (peut-être considérer les coordonnées barycentriques, mais je pense que ça ne fait pas beaucoup de différences en terme de perf).
+//   for(int i = 0; i < 3; i++)
+//   {
+//     vert = Msh->Tri[tri_P][i];
+//     if((Msh->Crd[vert][0] == P[0] && Msh->Crd[vert][1] == P[1]) || (Msh->Crd[vert][0] == P[1] && Msh->Crd[vert][1] == P[0]))
+//     {
+//       printf("Le point P = (%f,%f) est déjà dans le maillage. Ce dernier n'a par conséquent pas été mit à jours.\n", P[0],P[1]);
+//       return;
+//     }
+//   }
 
-  // Ajouter le nouveau point au maillage
-  double2d* tmp = realloc(Msh->Crd,  sizeof(double2d)*(Msh->NbrVer + 1));
-  Msh->Crd = tmp;
-  Msh->Crd[Msh->NbrVer+1][0] = P[0]; Msh->Crd[Msh->NbrVer+1][1] = P[1];
+//   // Ajouter le nouveau point au maillage
+//   double2d* tmp = realloc(Msh->Crd,  sizeof(double2d)*(Msh->NbrVer + 1));
+//   Msh->Crd = tmp;
+//   Msh->Crd[Msh->NbrVer+1][0] = P[0]; Msh->Crd[Msh->NbrVer+1][1] = P[1];
 
-  // Calculer la cavité
-  bat_cavity = compute_cavity(Msh, tri_P, P);
+//   // Calculer la cavité
+//   bat_cavity = compute_cavity(Msh, tri_P, P);
   
-  // Récupérer les noeuds de la cavité
-  int* ver_cav = malloc(sizeof(int)*20);
-  for(int i = 0; i < 20; i++){ver_cav[i] = 0;}
+//   // Récupérer les noeuds de la cavité
+//   int* ver_cav = malloc(sizeof(int)*20);
+//   for(int i = 0; i < 20; i++){ver_cav[i] = 0;}
   
-  while(bat_cavity[tri] != 0)
-  { 
-    for(int l = 0; l < 3; l++)
-    {
-      ver = Msh->Tri[bat_cavity[tri]][l];
-      for(int m = 0; m < 3*j + l; m++)
-      {
-        if(ver == ver_cav[m]){already_stored = 1;}
-      }
-      if(already_stored == 1){continue;} // Sommet déjà stocké
-      else
-      {
-        ver_cav[j] = ver;
-        printf("\nindex %d : %d\n", j, ver_cav[j]);
-        j++;
-      }
-    }
-    tri++;
-  }
+//   while(bat_cavity[tri] != 0)
+//   { 
+//     for(int l = 0; l < 3; l++)
+//     {
+//       ver = Msh->Tri[bat_cavity[tri]][l];
+//       for(int m = 0; m < j; m++)
+//       {
+//         if(ver == ver_cav[m]){already_stored = 1;break;}
+//       }
+//       if(already_stored == 1){already_stored = 0;continue;} // Sommet déjà stocké
+//       else
+//       {
+//         ver_cav[j] = ver;
+//         printf("\nindex %d : %d\n", j, ver_cav[j]);
+//         j++;
+//       }
+//     }
+//     tri++;
+//   }
+//   for(int i = 0; i < j; i++)
+//   {
+//     printf("\n%d : %d\n", i, ver_cav[i]);
+//   }
+//   /* 
+//     tri == nombre de triangle que l'on a retiré dans le maillage, j == nombre de triangle qu'il faut ajouter
+//     j - tri == nombre de nouvels emplacement à créer
+//   */ 
 
-  /* 
-    tri == nombre de triangle que l'on a retiré dans le maillage, j == nombre de triangle qu'il faut ajouter
-    j - tri == nombre de nouvels emplacement à créer
-  */ 
+//   int3d* tmp_tri = realloc(Msh->Tri, sizeof(int3d)*(Msh->NbrTri + j - tri));
+//   Msh->Tri = tmp_tri;
 
-  realloc(Msh->Tri, sizeof(int3d)*(j-tri));
-  int k = 0;
-  while(k < j-1)
-  {
-    if(k < tri)
-    {
-      if(det_tri_points(Msh->Crd[ver_cav[k]], Msh->Crd[ver_cav[k+1]], P) < 0)  // Vérifier que le triangle est bien orienté
-      {
-        // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
-        Msh->Tri[bat_cavity[k]][0] = ver_cav[k];
-        Msh->Tri[bat_cavity[k]][1] = Msh->NbrVer+1;
-        Msh->Tri[bat_cavity[k]][2] = ver_cav[k+1];
-        k++;
-      }
-      else
-      {
-        // Triangle (ar_com[0],ar_com[1],P) bien orienté, on peut l'ajouter tel quel
-        Msh->Tri[bat_cavity[k]][0] = ver_cav[k];
-        Msh->Tri[bat_cavity[k]][1] = ver_cav[k+1];
-        Msh->Tri[bat_cavity[k]][2] = Msh->NbrVer+1;
-        k++;
-      }
-    }
-    else 
-    {
-      if(det_tri_points(Msh->Crd[ver_cav[k]], Msh->Crd[ver_cav[k]], P) < 0) 
-      {
-        // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
-        Msh->Tri[Msh->NbrTri+1][0] = ver_cav[k];
-        Msh->Tri[Msh->NbrTri+1][1] = Msh->NbrVer+1;
-        Msh->Tri[Msh->NbrTri+1][2] = ver_cav[k+1];
+//   // Maintenant, on étoile pour créer les nouveaux triangles et on met à jour le maillage 
+
+
+//   stack* stack = stack_init(10);
+//   stack_add(stack, bat_cavity[0]);
+  
+//   int k = 0, cur_tri = 0;
+//   while(stack->top != 0)
+//   {
+//     cur_tri = stack->array[stack->top];
+//     stack_del(stack);
+
+//     for(int l = 0; l < 3; l++)
+//     {
+//       int ver1 = Msh->Tri[cur_tri][l];
+
+//     }
+//     if(k < tri)
+//     {
+//       if(det_tri_points(Msh->Crd[ver_cav[k]], Msh->Crd[ver_cav[k+1]], P) < 0)  // Vérifier que le triangle est bien orienté
+//       {
+//         // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
+
+//         Msh->Tri[bat_cavity[k]][0] = ver_cav[k];
+//         Msh->Tri[bat_cavity[k]][1] = Msh->NbrVer+1;
+//         Msh->Tri[bat_cavity[k]][2] = ver_cav[k+1];
+//         k++;
+//       }
+//       else
+//       {
+//         // Triangle (ar_com[0],ar_com[1],P) bien orienté, on peut l'ajouter tel quel
+//         Msh->Tri[bat_cavity[k]][0] = ver_cav[k];
+//         Msh->Tri[bat_cavity[k]][1] = ver_cav[k+1];
+//         Msh->Tri[bat_cavity[k]][2] = Msh->NbrVer+1;
+//         k++;
+//       }
+//     }
+//     else 
+//     {
+//       if(det_tri_points(Msh->Crd[ver_cav[k]], Msh->Crd[ver_cav[k]], P) < 0) 
+//       {
+//         // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
+//         Msh->Tri[Msh->NbrTri+1][0] = ver_cav[k];
+//         Msh->Tri[Msh->NbrTri+1][1] = Msh->NbrVer+1;
+//         Msh->Tri[Msh->NbrTri+1][2] = ver_cav[k+1];
         
-        // Mettre à jour le nombre de triangle dans le maillage
-        Msh->NbrTri++;
-        k++;
-      }
-      else
-      {
-        // Triangle (ar_com[0],ar_com[1],P) bien orienté, on peut l'ajouter tel quel
-        Msh->Tri[Msh->NbrTri+1][0] = ver_cav[k];
-        Msh->Tri[Msh->NbrTri+1][1] = ver_cav[k+1];
-        Msh->Tri[Msh->NbrTri+1][2] = Msh->NbrVer+1;
+//         // Mettre à jour le nombre de triangle dans le maillage
+//         Msh->NbrTri++;
+//         k++;
+//       }
+//       else
+//       {
+//         // Triangle (ar_com[0],ar_com[1],P) bien orienté, on peut l'ajouter tel quel
+//         Msh->Tri[Msh->NbrTri+1][0] = ver_cav[k];
+//         Msh->Tri[Msh->NbrTri+1][1] = ver_cav[k+1];
+//         Msh->Tri[Msh->NbrTri+1][2] = Msh->NbrVer+1;
 
-        // Mettre à jour le nombre de triangle dans le maillage
-        Msh->NbrTri++;
-        k++;
-      }
-    }
-  }
+//         // Mettre à jour le nombre de triangle dans le maillage
+//         Msh->NbrTri++;
+//         k++;
+//       }
+//     }
+//   }
 
-  // Mise à  jour final : on incrémente le nombre de noeud dans le maillage
-  Msh->NbrVer++;
-  printf("\nLe point P = (%f,%f) à été inséré avec succès !\n", P[0], P[1]);
+//   // Mise à  jour final : on incrémente le nombre de noeud dans le maillage
+//   Msh->NbrVer++;
+//   printf("\nLe point P = (%f,%f) à été inséré avec succès !\n", P[0], P[1]);
     
-  return;
-}
+//   return;
+// }

@@ -51,8 +51,11 @@ int main(int argc, char* argv[])
   P[0] = 0.45; P[1] = 0.125;
   
   // Test de la fonction de calcul de la cavité
-  int* cavity = compute_cavity(Msh, 5, P);
-  for(int i = 0; i < 20; i++){printf("\n%d : %d", i, cavity[i]);}
+  int2d* cavity = compute_cavity(Msh, 5, P);
+  int edg = 0;
+  while(cavity[edg][0] == 0 && cavity[edg][1] == 0){edg++;}
+
+  for(int i = 0; i < edg; i++){printf("\n%d : (%d, %d)\n", i, cavity[i][0], cavity[i][1]);}
 
   for(int i = 1; i <= Msh->NbrTri; i++)
   {
@@ -67,6 +70,7 @@ int main(int argc, char* argv[])
     }
   }
   
+  return 0;
   // Test de la fonction d'insertion d'un point dans un maillage
   printf("\nMsh->NbrVerMax current : %d", Msh->NbrVerMax);
   push_NbrVerMax(Msh);
