@@ -60,29 +60,13 @@ int main(int argc, char* argv[])
 
   insertion(Msh,P);
   
-
-
-  // for(int i = 1; i <= Msh->NbrTri; i++)
-  // {
-  //   printf("\nTriangle %d : ", i);
-  //   if(empty_sphere_criterion(Msh, i, P) == 1)
-  //   {
-  //     printf("1\n");
-  //   }
-  //   else
-  //   {
-  //     printf("0\n");
-  //   }
-  // }
-  
-  return 0;
   // Test de la fonction d'insertion d'un point dans un maillage
 
   for(int i = 1; i <= Msh->NbrVer; i++)
   {
     printf("\nNoeud %d : (%f,%f)\n", i, Msh->Crd[i][0], Msh->Crd[i][1]);
   }
-  for(int i = 1; i <= Msh->NbrTriMax; i++)
+  for(int i = 1; i <= Msh->NbrTri; i++)
   {
     printf("\nTriangle numéro %d : (%d,%d,%d)\n", i, Msh->Tri[i][0]
                                                    , Msh->Tri[i][1]

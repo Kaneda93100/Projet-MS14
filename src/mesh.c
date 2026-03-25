@@ -588,7 +588,6 @@ volatile HashTable* Hash_build(Mesh* Msh)
       iVer1 = Msh->Tri[iTri][tri2edg[iEdg][0]];
       iVer2 = Msh->Tri[iTri][tri2edg[iEdg][1]];
       hash_add(hsh, iVer1, iVer2, iTri);
-      hash_cout(hsh);
     }
   }
 
@@ -1265,7 +1264,6 @@ int* compute_cavity(Mesh* Msh, int id_tri, double* P)
   for(int i = 0; i < stack->size; i++){printf("\n%d : %d\n", i, cavity[i]);}
   return cavity;
 }
-
 void insertion(Mesh* Msh, double* P)
 { 
   if(Msh->NbrVer+1 > Msh->NbrVerMax){printf("Nombre de points de maillage autorisé dépassé. Le maillage ne sera pas modifié.\n"); return;} 
@@ -1340,73 +1338,73 @@ void insertion(Mesh* Msh, double* P)
 
   /* 
     it == nombre de triangle que l'on a retiré dans le maillage, j == nombre de triangle qu'il faut ajouter
-    j - tri == nombre de nouvels emplacement à créer
+    j - it == nombre de nouvels emplacement à créer
   */ 
 
-
   // Maintenant, on étoile pour créer les nouveaux triangles et on met à jour le maillage 
+  int3d* tmp_msh = realloc(Msh->Tri, sizeof(int3d)*(Msh->NbrTri + 1 + j-it));
+  for(int i = Msh->NbrTri+1; i <= Msh->NbrTri + (j-it); i++)
+  {
+    tmp_msh[i][0] = 0;
+    tmp_msh[i][1] = 0;
+    tmp_msh[i][2] = 0;
+  }
+  Msh->Tri = tmp_msh;
+  int k = 0, ver1 = 0, ver2 = 0;
+  while(k < j)
+  { 
+    ver1 = node_on_edge[k][0];
+    ver2 = node_on_edge[k][1];
+    if(k < it)
+    {
+      if(det_tri_points(Msh->Crd[ver1], Msh->Crd[ver2], P) < 0)  // Vérifier que le triangle est bien orienté      
+      {
+        // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
 
-  int k = 0, cur_tri = 0;
-  while(k < it +j)
-//   {
-//     cur_tri = stack->array[stack->top];
-//     stack_del(stack);
-
-//     for(int l = 0; l < 3; l++)
-//     {
-//       int ver1 = Msh->Tri[cur_tri][l];
-
-//     }
-//     if(k < tri)
-//     {
-//       if(det_tri_points(Msh->Crd[ver_cav[k]], Msh->Crd[ver_cav[k+1]], P) < 0)  // Vérifier que le triangle est bien orienté
-//       {
-//         // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
-
-//         Msh->Tri[bat_cavity[k]][0] = ver_cav[k];
-//         Msh->Tri[bat_cavity[k]][1] = Msh->NbrVer+1;
-//         Msh->Tri[bat_cavity[k]][2] = ver_cav[k+1];
-//         k++;
-//       }
-//       else
-//       {
-//         // Triangle (ar_com[0],ar_com[1],P) bien orienté, on peut l'ajouter tel quel
-//         Msh->Tri[bat_cavity[k]][0] = ver_cav[k];
-//         Msh->Tri[bat_cavity[k]][1] = ver_cav[k+1];
-//         Msh->Tri[bat_cavity[k]][2] = Msh->NbrVer+1;
-//         k++;
-//       }
-//     }
-//     else 
-//     {
-//       if(det_tri_points(Msh->Crd[ver_cav[k]], Msh->Crd[ver_cav[k]], P) < 0) 
-//       {
-//         // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
-//         Msh->Tri[Msh->NbrTri+1][0] = ver_cav[k];
-//         Msh->Tri[Msh->NbrTri+1][1] = Msh->NbrVer+1;
-//         Msh->Tri[Msh->NbrTri+1][2] = ver_cav[k+1];
+        Msh->Tri[bat_cavity[k]][0] = ver1;
+        Msh->Tri[bat_cavity[k]][1] = Msh->NbrVer+1;
+        Msh->Tri[bat_cavity[k]][2] = ver2;
+        k++;
+      }
+      else
+      {
+        // Triangle (ar_com[0],ar_com[1],P) bien orienté, on peut l'ajouter tel quel
+        Msh->Tri[bat_cavity[k]][0] = ver1;
+        Msh->Tri[bat_cavity[k]][1] = ver2;
+        Msh->Tri[bat_cavity[k]][2] = Msh->NbrVer+1;
+        k++;
+      }
+    }
+    else 
+    {
+      if(det_tri_points(Msh->Crd[ver1], Msh->Crd[ver2], P) < 0) 
+      {
+        // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
+        Msh->Tri[Msh->NbrTri+1][0] = ver1;
+        Msh->Tri[Msh->NbrTri+1][1] = Msh->NbrVer+1;
+        Msh->Tri[Msh->NbrTri+1][2] = ver2;
         
-//         // Mettre à jour le nombre de triangle dans le maillage
-//         Msh->NbrTri++;
-//         k++;
-//       }
-//       else
-//       {
-//         // Triangle (ar_com[0],ar_com[1],P) bien orienté, on peut l'ajouter tel quel
-//         Msh->Tri[Msh->NbrTri+1][0] = ver_cav[k];
-//         Msh->Tri[Msh->NbrTri+1][1] = ver_cav[k+1];
-//         Msh->Tri[Msh->NbrTri+1][2] = Msh->NbrVer+1;
+        // Mettre à jour le nombre de triangle dans le maillage
+        Msh->NbrTri++;
+        k++;
+      }
+      else
+      {
+        // Triangle (ar_com[0],ar_com[1],P) bien orienté, on peut l'ajouter tel quel
+        Msh->Tri[Msh->NbrTri+1][0] = ver1;
+        Msh->Tri[Msh->NbrTri+1][1] = ver2;
+        Msh->Tri[Msh->NbrTri+1][2] = Msh->NbrVer+1;
 
-//         // Mettre à jour le nombre de triangle dans le maillage
-//         Msh->NbrTri++;
-//         k++;
-//       }
-//     }
-//   }
+        // Mettre à jour le nombre de triangle dans le maillage
+        Msh->NbrTri++;
+        k++;
+      }
+    }
+  }
 
-//   // Mise à  jour final : on incrémente le nombre de noeud dans le maillage
-//   Msh->NbrVer++;
-//   printf("\nLe point P = (%f,%f) à été inséré avec succès !\n", P[0], P[1]);
+  // Mise à  jour final : on incrémente le nombre de noeud dans le maillage
+  Msh->NbrVer++;
+    printf("\nLe point P = (%f,%f) à été inséré avec succès !\n", P[0], P[1]);
     
   return;
 }
