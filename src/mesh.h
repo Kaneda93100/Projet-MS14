@@ -139,7 +139,7 @@ int hash_suppr(volatile HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> 
 
 // Utiliser les tables de hachages pour construire les voisins 
 int msh_neighbors(Mesh* Msh); // build TriVoi with a hash table
-int Edges_build(Mesh* Msh); // Trouver les arêtes sur le bord du maillage
+int2d* Edges_build(Mesh* Msh); // Trouver les arêtes sur le bord du maillage
 void EdgVoi_build(Mesh*); // construire les arêtes de bord voisine avec une table de hash
 
 // Coloriage d'un maillage selon des sous-domaines
@@ -173,5 +173,5 @@ double circ_circle_ray(Mesh*, int); // Calculer le rayon du cercle circonscrit
 double* centre_circ_circle(Mesh*, int); // Calculer le centre du cercle circonscrit
 int empty_sphere_criterion(Mesh*, int, double*); // Critère de la sphère vide
 
-int2d* compute_cavity(Mesh*, int, double*);
+int* compute_cavity(Mesh*, int, double*);
 void insertion(Mesh*, double*);
