@@ -52,11 +52,11 @@ Mesh* init_dummy_qube(int NbrVerMax)
 
   Mesh* qube = msh_init();
 
-  qube->NbrVerMax = NbrVerMax;
+  qube->NbrVerMax = NbrVerMax+4;
   qube->NbrTriMax = 5*NbrVerMax;
 
-  qube->Tri = malloc(sizeof(int3d)*(qube->NbrTriMax+1));
-  qube->Crd = malloc(sizeof(double2d)*(qube->NbrVerMax+1));
+  qube->Tri = malloc(sizeof(int3d)*(qube->NbrTriMax+6));
+  qube->Crd = malloc(sizeof(double2d)*(qube->NbrVerMax+6));
 
   qube->NbrTri = 2;
   qube->NbrVer = 4;
@@ -1338,7 +1338,7 @@ int* compute_cavity(Mesh* Msh, int id_tri, double* P)
 }
 void insertion(Mesh* Msh, double* P)
 { 
-  if(Msh->NbrVer+1 >= Msh->NbrVerMax){printf("Nombre de points de maillage autorisé dépassé. Le maillage ne sera pas modifié.\n"); return;} 
+  if(Msh->NbrVer >= Msh->NbrVerMax){printf("Nombre de points de maillage autorisé dépassé. Le maillage ne sera pas modifié.\n"); return;} 
 
   Msh->Crd[Msh->NbrVer+1][0] = P[0]; Msh->Crd[Msh->NbrVer+1][1] = P[1];
 

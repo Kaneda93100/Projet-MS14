@@ -5,7 +5,7 @@ int main(int argc, char* argv[])
 
   printf("Bad mozerfucker\n");
 
-  int ver_ins = 10;
+  int ver_ins = 300;
   Mesh* qube = init_dummy_qube(ver_ins);
 
   if (!qube)
@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
 
     // Insérer le point G dans le qube
     insertion(qube, G);
-
+    printf("\n\nNbrVer/NbrVerMax : %d / %d\n\n", qube->NbrVer, qube->NbrVerMax);
     printf("\nAffichage des points du maillage.\n");
     for(int j = 1; j <= qube->NbrVer; j++)
     {
@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
     }
     printf("\n");
     
-    printf("\n%d\n\n", qube->NbrVer);
+    printf("\nNombre de noeud dans le maillage : %d\n\n", qube->NbrVer);
   }
   
   msh_write(qube, "qube_debile.mesh");
