@@ -5,7 +5,60 @@ int main(int argc, char* argv[])
 
   printf("Bad mozerfucker\n");
 
+  int ver_ins = 10;
+  Mesh* qube = init_dummy_qube(ver_ins);
+
+  if (!qube)
+  {
+    printf("\nTon maillage existe pas, fils de p@#§\n");
+    return 0;
+  }
+  printf("\nBOOOOORN IN THE USA, I WAS\n");
+
+  int does_that_shit_work = 0;
+
+  double G[2]; 
+  G[0] = 0; G[1] = 0;
+
+
+  srand(42); // La réponse à la grande question
+  for(int i = 0; i < ver_ins; i++)
+  {
+    does_that_shit_work = msh_neighbors(qube);
+    if(does_that_shit_work == 1){printf("\nHIIIIGWAAAAY TO THE DANGER ZONE\n");}
+    else{printf("\nAHHHHHHHHHHHHHHHHHH CA MARCHE PAS\n"); return 0;}
+    
+    // Générer un point dans le carré
+    G[0] = ((double)rand())/RAND_MAX;
+    G[1] = ((double)rand())/RAND_MAX;
+
+
+    // Insérer le point G dans le qube
+    insertion(qube, G);
+
+    printf("\nAffichage des points du maillage.\n");
+    for(int j = 1; j <= qube->NbrVer; j++)
+    {
+        printf("\n%d : (%f, %f)\n", j, qube->Crd[j][0], qube->Crd[j][1]);
+    }
+    printf("\n");
+
+    printf("\nAffichage des triangles du maillage.\n");
+    for(int j = 1; j <= qube->NbrTri; j++)
+    {
+      printf("\n%d : (%d,%d,%d)\n", j, qube->Tri[j][0]
+                                     , qube->Tri[j][1]
+                                     , qube->Tri[j][2]);
+    }
+    printf("\n");
+    
+    printf("\n%d\n\n", qube->NbrVer);
+  }
   
+  msh_write(qube, "qube_debile.mesh");
+  
+  return 0;
+
   int    iTri, iVer;
   double to, ti;
   
@@ -31,6 +84,8 @@ int main(int argc, char* argv[])
   printf("\n\n\n");
 
 
+  return 0;
+
   int succeed = msh_neighbors(Msh);
   printf("%d", succeed);
 
@@ -55,7 +110,7 @@ int main(int argc, char* argv[])
   for(int i = 0; i < 20; i++){printf("\n%d : %d\n", i, cavity[i]);}  
 
   printf("\nMsh->NbrVerMax current : %d", Msh->NbrVerMax);
-  push_NbrVerMax(Msh);
+  //push_NbrVerMax(Msh);
   printf("\nMsh->NbrVerMax updated : %d", Msh->NbrVerMax);
 
   insertion(Msh,P);

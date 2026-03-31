@@ -42,6 +42,63 @@ Mesh* msh_init()
 
   return Msh;
 }
+
+Mesh* init_dummy_qube(int NbrVerMax)
+{
+  /*
+    Initialiser un carré dans lequel on insèrera des points. On initialise en amont la mémoire
+    pour pas avoir à la réallouer dynamiquement.
+  */
+
+  Mesh* qube = msh_init();
+
+  qube->NbrVerMax = NbrVerMax;
+  qube->NbrTriMax = 5*NbrVerMax;
+
+  qube->Tri = malloc(sizeof(int3d)*(qube->NbrTriMax+1));
+  qube->Crd = malloc(sizeof(double2d)*(qube->NbrVerMax+1));
+
+  qube->NbrTri = 2;
+  qube->NbrVer = 4;
+
+  // Initialiser les coordonnées des 4 points de départ
+  qube->Crd[0][0] = 0; qube->Crd[0][1] = 0;
+  qube->Crd[1][0] = 0; qube->Crd[1][1] = 0;
+  qube->Crd[2][0] = 1; qube->Crd[2][1] = 0;
+  qube->Crd[3][0] = 1; qube->Crd[3][1] = 1;
+  qube->Crd[4][0] = 0; qube->Crd[4][1] = 1;
+  for(int i = 5; i <= NbrVerMax; i++){qube->Crd[i][0] = 0; qube->Crd[i][1] = 0;}
+
+  // Initialiser les 2 triangles de départ
+  qube->Tri[0][0] = 0; qube->Tri[0][1] = 0; qube->Tri[0][2] = 0;
+  qube->Tri[1][0] = 1; qube->Tri[1][1] = 2; qube->Tri[1][2] = 4;
+  qube->Tri[2][0] = 2; qube->Tri[2][1] = 3; qube->Tri[2][2] = 4; 
+  for(int i = 3; i <= qube->NbrTriMax; i++){qube->Tri[i][0] = 0; qube->Tri[i][1] = 0; qube->Tri[i][2] = 0;}  
+
+  // Initialiser le reste des attributs par sécurité  
+  qube->NbrEfrMax = 0;
+  qube->NbrEdgMax = 0;
+
+  qube->Box[0] = 1.e30; // xmin
+  qube->Box[1] = -1.e30; // xmax
+  qube->Box[2] = 1.e30; // ymin
+  qube->Box[3] = -1.e30; // ymax
+
+  qube->NbrEfrMax = 0;
+  qube->NbrEdgMax = 0;
+
+  qube->TriVoi = NULL;
+  qube->TriRef = NULL;
+  qube->TriMrk = NULL;
+
+  qube->Efr    = NULL;
+  qube->EfrVoi = NULL;
+  qube->EfrRef = NULL;
+
+  qube->Edg = NULL;
+  return qube;
+}
+
 Mesh* msh_read(char* file, int readEfr)
 {
   char   InpFil[1024];
@@ -576,10 +633,20 @@ volatile HashTable* Hash_build(Mesh* Msh)
   if (!Msh) return 0;
 
   if (Msh->TriVoi == NULL)
+  {
     Msh->TriVoi = calloc((Msh->NbrTri + 1), sizeof(int3d));
+  }
+
+  for(int i = 1; i <= Msh->NbrTri; i++)
+  {
+    for(int v = 0; v < 3; v++)
+    {
+      Msh->TriVoi[i][v] = 0;
+    }
+  }
 
   // Initialiser la table de hachage
-  volatile HashTable* hsh = hash_init(3*Msh->NbrVer, 3*Msh->NbrTri);
+  volatile HashTable* hsh = hash_init(3*Msh->NbrVerMax , 3*Msh->NbrVerMax);
 
     // Construction effective de la table
   for(iTri = 1; iTri <= Msh->NbrTri; iTri++){
@@ -593,6 +660,14 @@ volatile HashTable* Hash_build(Mesh* Msh)
 
   return hsh;
 }
+void hash_free(volatile HashTable* Hsh)
+{
+  /*Libérer la mémoire allouée à une table de hachage*/
+
+  free(Hsh->LstObj);
+  free(Hsh->Head);
+}
+
 int msh_neighbors(Mesh* Msh)
 {
   /*
@@ -645,14 +720,13 @@ int msh_neighbors(Mesh* Msh)
         else{id = hsh->LstObj[id][4];}
       }
     }
-
-
   }
   double stop = clock();
   printf("Table de hachage calculée en %lg seconde(s) \n", (stop - start) / CLOCKS_PER_SEC);
 
   printf("Nombre d'arêtes récupérées : %d\n", hsh->NbrObj);
-
+  
+  hash_free(hsh);
   return 1;
 }
 int2d* Edges_build(Mesh* Msh)
@@ -1080,7 +1154,6 @@ int localising(Mesh* Msh, double* P)
     {
       itri = identify_voi(Msh, itri, Msh->Tri[itri][1], Msh->Tri[itri][2]); // Assigner le bon voisin
       if(itri == -1){printf("Erreur dans l'idenfication du voinsin.\n");exit(-1);}
-      for(int i = 0; i < 3; i++){bary[i] = 0;} // Réinitialiser le tableau des coordonnées barycentriques par sécurité
     }
     else 
     {
@@ -1088,16 +1161,14 @@ int localising(Mesh* Msh, double* P)
       {
         itri = identify_voi(Msh,itri,Msh->Tri[itri][0], Msh->Tri[itri][2]);
         if(itri == -1){printf("Erreur dans l'idenfication du voinsin.\n");exit(-1);}
-        for(int i = 0; i < 3; i++){bary[i] = 0;} 
       }
       if(bary[0] >= 0 && bary[1] >= 0)
       {
         itri = identify_voi(Msh, itri, Msh->Tri[itri][0], Msh->Tri[itri][1]);
         if(itri == -1){printf("Erreur dans l'idenfication du voinsin.\n");exit(-1);}
-        for(int i = 0; i < 3; i++){bary[i] = 0;} 
       }
     }
-
+    for(int i = 0; i < 3; i++){bary[i] = 0;} // Réinitialiser les baricentres par sécurités
     count++;
   }
 
@@ -1215,11 +1286,12 @@ int empty_sphere_criterion(Mesh* Msh, int id_tri, double* P)
 }
 
 // Insertion d'un point avec création de sa cavité suivant le critère de Delaunay et mise à jour du maillage
-void push_NbrVerMax(Mesh* Msh)
+void set_NbrVerMax(Mesh* Msh, int M)
 {
   /*Mettre à jour le nombre de point maximum dans le maillage.*/
 
-  Msh->NbrVerMax++;
+  Msh->NbrVerMax = M;
+  Msh->NbrTriMax = 3*M;
   return;
 }
 int* compute_cavity(Mesh* Msh, int id_tri, double* P)
@@ -1261,12 +1333,14 @@ int* compute_cavity(Mesh* Msh, int id_tri, double* P)
       else{already_stored = 0;}
     } 
   }
-  for(int i = 0; i < stack->size; i++){printf("\n%d : %d\n", i, cavity[i]);}
+
   return cavity;
 }
 void insertion(Mesh* Msh, double* P)
 { 
-  if(Msh->NbrVer+1 > Msh->NbrVerMax){printf("Nombre de points de maillage autorisé dépassé. Le maillage ne sera pas modifié.\n"); return;} 
+  if(Msh->NbrVer+1 >= Msh->NbrVerMax){printf("Nombre de points de maillage autorisé dépassé. Le maillage ne sera pas modifié.\n"); return;} 
+
+  Msh->Crd[Msh->NbrVer+1][0] = P[0]; Msh->Crd[Msh->NbrVer+1][1] = P[1];
 
   // Localiser le point P dans le maillage
   int tri_P = localising(Msh, P);
@@ -1282,11 +1356,6 @@ void insertion(Mesh* Msh, double* P)
       return;
     }
   }
-
-  // Ajouter le nouveau point au maillage
-  double2d* tmp = realloc(Msh->Crd,  sizeof(double2d)*(Msh->NbrVer + 1));
-  Msh->Crd = tmp;
-  Msh->Crd[Msh->NbrVer+1][0] = P[0]; Msh->Crd[Msh->NbrVer+1][1] = P[1];
 
   // Calculer la cavité + récupérer le bon nombre de noeud
   int* bat_cavity = compute_cavity(Msh, tri_P, P);
@@ -1315,12 +1384,13 @@ void insertion(Mesh* Msh, double* P)
     }
     tri++;
   }
-  free(ver_cav);
+
 
   // Initialiser le bat_mesh 
   Mesh* bat_mesh = msh_init();
   bat_mesh->NbrTri = it;
   bat_mesh->NbrVer = j;
+  bat_mesh->NbrVerMax = Msh->NbrVerMax;
   bat_mesh->Tri = malloc(sizeof(int3d)*(it+1));
   bat_mesh->Tri[0][0] = 0; bat_mesh->Tri[0][1] = 0; bat_mesh->Tri[0][2] = 0;
 
@@ -1336,20 +1406,23 @@ void insertion(Mesh* Msh, double* P)
 
   int2d* node_on_edge = Edges_build(bat_mesh);
 
+  free(bat_mesh->Crd);
+  free(bat_mesh->Tri);
+
   /* 
     it == nombre de triangle que l'on a retiré dans le maillage, j == nombre de triangle qu'il faut ajouter
     j - it == nombre de nouvels emplacement à créer
   */ 
 
   // Maintenant, on étoile pour créer les nouveaux triangles et on met à jour le maillage 
-  int3d* tmp_msh = realloc(Msh->Tri, sizeof(int3d)*(Msh->NbrTri + 1 + j-it));
+  Msh->Tri = realloc(Msh->Tri, sizeof(int3d)*(Msh->NbrTri + 1 + j-it));
   for(int i = Msh->NbrTri+1; i <= Msh->NbrTri + (j-it); i++)
   {
-    tmp_msh[i][0] = 0;
-    tmp_msh[i][1] = 0;
-    tmp_msh[i][2] = 0;
+    Msh->Tri[i][0] = 0;
+    Msh->Tri[i][1] = 0;
+    Msh->Tri[i][2] = 0;
   }
-  Msh->Tri = tmp_msh;
+
   int k = 0, ver1 = 0, ver2 = 0;
   while(k < j)
   { 
@@ -1404,7 +1477,7 @@ void insertion(Mesh* Msh, double* P)
 
   // Mise à  jour final : on incrémente le nombre de noeud dans le maillage
   Msh->NbrVer++;
-    printf("\nLe point P = (%f,%f) à été inséré avec succès !\n", P[0], P[1]);
-    
+  printf("\nLe point P = (%f,%f) à été inséré avec succès !\n", P[0], P[1]);
+  
   return;
 }

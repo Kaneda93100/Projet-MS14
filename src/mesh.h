@@ -71,6 +71,7 @@ typedef struct t_mesh {
 
 //--- Provided functions
 Mesh*   msh_init();
+Mesh* init_dummy_qube(int);
 Mesh*   msh_read(char* file, int readEfr);
 int     msh_write(Mesh* Msh, char* file);
 double* sol_read(char* file, int mshDim, int mshNbrSol);
@@ -122,6 +123,7 @@ int msh_neighborsQ2(Mesh* Msh); // build TriVoi with the naive quadratic approac
 // Initialisation et construction des tables de hachages
 volatile HashTable* hash_init(int SizHead, int NbrMaxObj); // alloc and set htable ==> allocate Head, LstObj
 volatile HashTable* Hash_build(Mesh* Msh); // Construire la table de hachage
+void hash_free(volatile HashTable* Hsh); // Supprimer les emplacements mémoires associés à une table de hachage.
 
 //--- Diverses méthodes sur les HashTable
 void hash_cout_head(volatile HashTable* hsh, int Key); // Afficher les éléments d'une tête
@@ -159,7 +161,7 @@ double qual2(Mesh* M, int idTri);
 int msh_write2dmetric(char* file, int nmetric, double3d* metric);
 int msh_write2dfield_Triangles(char* file, int nfield, double* field);
 int msh_write2dfield_Vertices(char* file, int nfield, double* field);
-void push_NbrVerMax(Mesh*); // Modifier le nombre de point maximal dans le maillage
+void set_NbrVerMax(Mesh*, int); // Modifier le nombre de point maximal dans le maillage
 
 // Delaunay, insertion et cavités
 double* compute_BC(Mesh*, int, double*); // Calcul des coordonnées barycentrique
