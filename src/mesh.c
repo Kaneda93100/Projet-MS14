@@ -303,8 +303,8 @@ double* sol_read(char* file, int mshDim, int mshNbrSol)
 int msh_boundingbox(Mesh* Msh)
 {
   int1d iVer;
-  double Mx,My = 0;
-  double mx, my = 0;
+  double Mx = 0,My = 0;
+  double mx = 1e200, my = 1e200;
 
   //--- compute bounding box
   for (iVer = 1; iVer <= Msh->NbrVer; iVer++) {
@@ -320,10 +320,10 @@ int msh_boundingbox(Mesh* Msh)
       if(my > tempy){my = tempy;}
   }
 
-  Msh->Box[0] = Mx; 
-  Msh->Box[1] = mx; 
-  Msh->Box[2] = My; 
-  Msh->Box[3] = my;
+  Msh->Box[0] = mx; //xmin
+  Msh->Box[1] = Mx; //xmax
+  Msh->Box[2] = my; //ymin
+  Msh->Box[3] = My; //ymax
 
 
   return 1;
@@ -1502,3 +1502,72 @@ void insertion(Mesh* Msh, double* P)
   
   return;
 }
+
+// Compression
+Mesh* scale_and_init(Mesh* Img, int NbrPix)
+{
+  /*
+    Préparer un maillage vide dans lequel on va compresser l'image stockée dans Mesh* Img. On doit rentre 
+  */
+
+  if(NbrPix > Img->NbrVer){printf("\n+ de pixel que de point.\n");}
+  int succeed = msh_boundingbox(Img);
+  if(succeed!=1){printf("Erreur dans le calcul de la bounding box\n");exit(-1);}
+
+  double4d bound;
+  bound[0] = Img->Box[0]; bound[1] = Img->Box[1]; // xmin/xmax
+  bound[2] = Img->Box[2]; bound[3] = Img->Box[3]; // ymin/ymax
+
+  Mesh* Img_precomp = init_dummy_qube(NbrPix); 
+
+  Img_precomp->Box[0] = bound[0]; Img_precomp->Box[1] = bound[1]; // set xmin, xmax
+  Img_precomp->Box[2] = bound[2]; Img_precomp->Box[3] = bound[3]; // set ymin, ymax
+
+  // Réajuster les bornes du maillage
+  Img_precomp->Crd[1][0] = bound[0]; Img_precomp->Crd[1][1] = bound[2]; // scale xmin et ymin
+  Img_precomp->Crd[2][0] = bound[1]; Img_precomp->Crd[2][1] = bound[2]; // scale xmax et ymin
+  Img_precomp->Crd[3][0] = bound[1]; Img_precomp->Crd[3][1] = bound[3]; // scale xmax et ymax
+  Img_precomp->Crd[4][0] = bound[0]; Img_precomp->Crd[4][1] = bound[3]; // scale xmin et ymax
+
+  // Mettre à jour la bounding box du qube
+  return Img_precomp;
+}
+Mesh* comp_img(Mesh* Img, int NbrPix, int (*criterion_comp)(double))
+{
+  srand(42);
+  Mesh* Img_comp = scale_and_init(Img, NbrPix);
+
+  int is_selected = 0;
+  double2d P; P[0] = 0; P[1] = 0;
+  
+  for(int iVer = 1; iVer <= Img->NbrVer; iVer++)
+  {
+    P[0] = Img->Crd[iVer][0]; P[1] = Img->Crd[iVer][1];
+    is_selected = criterion_comp(0.5);
+    if(is_selected == 1)
+    { 
+      int is_successful = msh_neighbors(Img_comp);
+      if(is_successful!=1){printf("\n\nErreur dans la construction des voisin de Img_comp.\n\n");exit(-1);}
+      insertion(Img_comp, P);
+    }
+    else{continue;}
+  }
+
+  return Img_comp;
+}
+
+// Critères de compression
+int bernoulli_criterion_comp(double p)
+{
+  /*Compression stupide : on récupère un noeud de manière aléatoire selon une loi de Bernoulli */
+  if(p>1){printf("\nChoisissez un nombre entre 0 et 1.\n");exit(-1);}
+  double is_select = (double)(rand())/RAND_MAX; 
+  return (is_select < p) ? 1 : 0;
+}
+
+
+// double interpolator(double u)
+// {
+
+//   return u_comp;
+// }

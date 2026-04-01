@@ -177,3 +177,10 @@ int empty_sphere_criterion(Mesh*, int, double*); // Critère de la sphère vide
 
 int* compute_cavity(Mesh*, int, double*);
 void insertion(Mesh*, double*);
+
+// Compression
+Mesh* scale_and_init(Mesh*, int);
+Mesh* comp_img(Mesh*, int, int (*)());
+int bernoulli_criterion_comp(double);
+double interpolator(double);
+void dummy_insert(Mesh*, double* P);
