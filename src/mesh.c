@@ -42,7 +42,6 @@ Mesh* msh_init()
 
   return Msh;
 }
-
 Mesh* init_dummy_qube(int NbrVerMax)
 {
   /*
@@ -51,10 +50,16 @@ Mesh* init_dummy_qube(int NbrVerMax)
   */
 
   Mesh* qube = msh_init();
+  qube->Dim = 2;
 
+  /*
+    On fait l'hypothèse que dans le pire des cas, un noeud est connectée à au plus 5 triangles.
+    On peut adapter cette hypothèse à tout moment.
+  */
   qube->NbrVerMax = NbrVerMax+4;
   qube->NbrTriMax = 5*NbrVerMax;
 
+  // On alloue NbrTriMax/NbrVerMax+6 par sécurité.  
   qube->Tri = malloc(sizeof(int3d)*(qube->NbrTriMax+6));
   qube->Crd = malloc(sizeof(double2d)*(qube->NbrVerMax+6));
 
@@ -75,6 +80,19 @@ Mesh* init_dummy_qube(int NbrVerMax)
   qube->Tri[2][0] = 2; qube->Tri[2][1] = 3; qube->Tri[2][2] = 4; 
   for(int i = 3; i <= qube->NbrTriMax; i++){qube->Tri[i][0] = 0; qube->Tri[i][1] = 0; qube->Tri[i][2] = 0;}  
 
+  // Initialiser le tableau des voisins
+  qube->TriVoi = malloc(sizeof(int3d)*(qube->NbrTriMax+1));
+  for(int i = 0; i <= qube->NbrTriMax; i++)
+  {
+    /*
+    La construction des voisins par la table de hachage repose sur fait que la liste des triangles est 
+    initiliasée à 0. 
+    */
+    
+    qube->TriVoi[i][0] = 0;
+    qube->TriVoi[i][1] = 0;
+    qube->TriVoi[i][2] = 0;
+  }
   // Initialiser le reste des attributs par sécurité  
   qube->NbrEfrMax = 0;
   qube->NbrEdgMax = 0;
@@ -86,10 +104,14 @@ Mesh* init_dummy_qube(int NbrVerMax)
 
   qube->NbrEfrMax = 0;
   qube->NbrEdgMax = 0;
-
-  qube->TriVoi = NULL;
-  qube->TriRef = NULL;
-  qube->TriMrk = NULL;
+  
+  qube->TriMrk = malloc(sizeof(int1d)*(qube->NbrTriMax+6));
+  qube->TriRef = malloc(sizeof(int1d)*(qube->NbrTriMax+6));
+  for(int i  = 0; i <= qube->NbrTriMax; i++)
+  {
+    qube->TriRef[i] = 0;
+    qube->TriMrk[i] = 0; 
+  }
 
   qube->Efr    = NULL;
   qube->EfrVoi = NULL;
@@ -98,7 +120,6 @@ Mesh* init_dummy_qube(int NbrVerMax)
   qube->Edg = NULL;
   return qube;
 }
-
 Mesh* msh_read(char* file, int readEfr)
 {
   char   InpFil[1024];
@@ -722,9 +743,9 @@ int msh_neighbors(Mesh* Msh)
     }
   }
   double stop = clock();
-  printf("Table de hachage calculée en %lg seconde(s) \n", (stop - start) / CLOCKS_PER_SEC);
+  // printf("Table de hachage calculée en %lg seconde(s) \n", (stop - start) / CLOCKS_PER_SEC);
 
-  printf("Nombre d'arêtes récupérées : %d\n", hsh->NbrObj);
+  // printf("Nombre d'arêtes récupérées : %d\n", hsh->NbrObj);
   
   hash_free(hsh);
   return 1;
@@ -755,7 +776,7 @@ int2d* Edges_build(Mesh* Msh)
   }
 
   int2d* edges = realloc(tmp, sizeof(int2d)*count);
-  printf("Nombre d'arête sur la frontière : %d", count);
+  // printf("Nombre d'arête sur la frontière : %d", count);
   return edges;
 }
 
@@ -1378,7 +1399,7 @@ void insertion(Mesh* Msh, double* P)
       else
       {
         ver_cav[j] = ver;
-        printf("\nindex %d : %d\n", j, ver_cav[j]);
+        // printf("\nindex %d : %d\n", j, ver_cav[j]);
         j++;
       }
     }
@@ -1477,7 +1498,7 @@ void insertion(Mesh* Msh, double* P)
 
   // Mise à  jour final : on incrémente le nombre de noeud dans le maillage
   Msh->NbrVer++;
-  printf("\nLe point P = (%f,%f) à été inséré avec succès !\n", P[0], P[1]);
+  // printf("\nLe point P = (%f,%f) à été inséré avec succès !\n", P[0], P[1]);
   
   return;
 }
