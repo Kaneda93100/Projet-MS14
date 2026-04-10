@@ -1200,7 +1200,6 @@ int localising(Mesh* Msh, double* P)
     count++;
   }
 
-  printf("\nPoint localisé en %d étape(s).\n", count);
   free(bary);
 
   return itri;
@@ -1598,11 +1597,8 @@ img* comp_img(img* Img)
   
   for(int iVer = 1; iVer <= Img->M->NbrVer; iVer++)
   {
-    P[0] = Img->M->Crd[iVer][0]; P[1] = Img->M->Crd[iVer][1];
-
-    if(iVer%5 == 0){printf("\n%d\n", iVer);}
-    
-    is_selected = duummy_crit(iVer, 5);
+    P[0] = Img->M->Crd[iVer][0]; P[1] = Img->M->Crd[iVer][1];    
+    is_selected = duummy_crit(iVer, 2);
     if(is_selected == 1)
     { 
       int is_successful = msh_neighbors(Img_comp->M);
@@ -1616,6 +1612,31 @@ img* comp_img(img* Img)
   }
 
   return Img_comp;
+}
+void write_sol_img(char* path, img* Img)
+{
+  // Ecrire le maillage
+  char path_to_msh[100]; 
+  strcpy(path_to_msh, path);
+  strcat(path_to_msh, ".mesh");
+  
+  msh_write(Img->M, path_to_msh);
+
+  // Ecrire la solution
+  char path_to_sol[100]; 
+  strcpy(path_to_sol, path);
+  strcat(path_to_sol, ".sol");
+  
+  FILE* sol_file = fopen(path_to_sol, "w");
+  fprintf(sol_file, "MeshVersionFormatted 1\n\nDimension\n2\n\n\nSolAtVertices\n");
+  fprintf(sol_file, "%d\n1 1", Img->M->NbrVer);
+  for(int i = 1; i <= Img->M->NbrVer; i++)
+  {
+    fprintf(sol_file, "\n%f", Img->sol[i]);
+  }
+
+  printf("\nSolution et maillage écrits.\n");
+  return;
 }
 
 // Critères de compression

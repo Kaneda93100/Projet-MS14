@@ -23,7 +23,8 @@ int main(int argc, char* argv[])
   if (!Joc_brut)
     return 0;
 
-  msh_write(Joc_comp->M, "test.mesh");
+  int succeed = msh_neighbors(Joc_comp->M);
+  write_sol_img("Joc_comp", Joc_comp);
   
   return 0;
 }

@@ -190,6 +190,8 @@ img* img_init();
 img* init_from_mesh(Mesh*, double*);
 Mesh* scale_and_init(Mesh*);
 img* comp_img(img*);
+void write_sol(char*, double*);
+
 int bernoulli_criterion_comp(double);
 double interpolator(double);
 void dummy_insert(Mesh*, double* P);
