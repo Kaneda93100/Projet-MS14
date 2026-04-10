@@ -1092,10 +1092,17 @@ double qual2(Mesh* M, int idTri)
 }
 
 // Localisation d'un point dans le maillage
+int is_flat(Mesh* Msh, int id_tri)
+{
+  if(det_tri(Msh, id_tri)==0){return 1;}
+  else{return 0;}
+}
 double* compute_BC(Mesh* Msh, int id_tri, double* P)
 {
   /*Calcul des coordonnées barycentriques d'un point pour un triangle d'identifiant id_tri dans Msh un maillage.*/
- 
+  
+  if(is_flat(Msh, id_tri) == 1){return NULL;}
+
   double* P0 = malloc(sizeof(double2d));
   double* P1 = malloc(sizeof(double2d));
   double* P2 = malloc(sizeof(double2d));
@@ -1432,11 +1439,10 @@ void insertion(Mesh* Msh, double* P)
 
   /* 
     it == nombre de triangle que l'on a retiré dans le maillage, j == nombre de triangle qu'il faut ajouter
-    j - it == nombre de nouvels emplacement à créer
+    j - it == nombre de nouveaux emplacements à créer
   */ 
 
-  // Maintenant, on étoile pour créer les nouveaux triangles et on met à jour le maillage 
-  Msh->Tri = realloc(Msh->Tri, sizeof(int3d)*(Msh->NbrTri + 1 + j-it));
+
   for(int i = Msh->NbrTri+1; i <= Msh->NbrTri + (j-it); i++)
   {
     Msh->Tri[i][0] = 0;
@@ -1444,13 +1450,19 @@ void insertion(Mesh* Msh, double* P)
     Msh->Tri[i][2] = 0;
   }
 
-  int k = 0, ver1 = 0, ver2 = 0;
+  int itV = 0, k = 0, ver1 = 0, ver2 = 0;
   while(k < j)
   { 
-    ver1 = node_on_edge[k][0];
-    ver2 = node_on_edge[k][1];
+    if(itV == j){break;} // Tous les noeuds de la cavité on été testé
+    ver1 = node_on_edge[itV][0];
+    ver2 = node_on_edge[itV][1];
     if(k < it)
     {
+      if(det_tri_points(Msh->Crd[ver1], Msh->Crd[ver2], P) == 0) // Triangle plat (on incrémente l'itérateur sur les arètes de la cave mais on n'incrémente pas le nombre de triangle ajouté)
+      {
+        itV++;
+        continue;
+      }
       if(det_tri_points(Msh->Crd[ver1], Msh->Crd[ver2], P) < 0)  // Vérifier que le triangle est bien orienté      
       {
         // Triangle (ar_com[0],ar_com[1],P) mal orienté, on ajoute alors le triangle (ar_com[0],P,ar_com[1])
@@ -1459,6 +1471,7 @@ void insertion(Mesh* Msh, double* P)
         Msh->Tri[bat_cavity[k]][1] = Msh->NbrVer+1;
         Msh->Tri[bat_cavity[k]][2] = ver2;
         k++;
+        itV++;
       }
       else
       {
@@ -1467,6 +1480,7 @@ void insertion(Mesh* Msh, double* P)
         Msh->Tri[bat_cavity[k]][1] = ver2;
         Msh->Tri[bat_cavity[k]][2] = Msh->NbrVer+1;
         k++;
+        itV++;
       }
     }
     else 
@@ -1481,6 +1495,7 @@ void insertion(Mesh* Msh, double* P)
         // Mettre à jour le nombre de triangle dans le maillage
         Msh->NbrTri++;
         k++;
+        itV++;
       }
       else
       {
@@ -1492,6 +1507,7 @@ void insertion(Mesh* Msh, double* P)
         // Mettre à jour le nombre de triangle dans le maillage
         Msh->NbrTri++;
         k++;
+        itV++;
       }
     }
   }
@@ -1532,23 +1548,29 @@ Mesh* scale_and_init(Mesh* Img, int NbrPix)
   // Mettre à jour la bounding box du qube
   return Img_precomp;
 }
-Mesh* comp_img(Mesh* Img, int NbrPix, int (*criterion_comp)(double))
+Mesh* comp_img(Mesh* Img, int NbrPix)
 {
-  srand(42);
   Mesh* Img_comp = scale_and_init(Img, NbrPix);
 
-  int is_selected = 0;
+  int is_selected = 0, k = 0;
   double2d P; P[0] = 0; P[1] = 0;
   
   for(int iVer = 1; iVer <= Img->NbrVer; iVer++)
   {
     P[0] = Img->Crd[iVer][0]; P[1] = Img->Crd[iVer][1];
-    is_selected = criterion_comp(0.5);
+
+    if(iVer%5 == 0){printf("\n%d\n", iVer);}
+    
+    is_selected = duummy_crit(iVer, 5);
     if(is_selected == 1)
     { 
       int is_successful = msh_neighbors(Img_comp);
       if(is_successful!=1){printf("\n\nErreur dans la construction des voisin de Img_comp.\n\n");exit(-1);}
+    
+      if(k == Img_comp->NbrVerMax - 4){return Img_comp;}
+    
       insertion(Img_comp, P);
+      k++;
     }
     else{continue;}
   }
@@ -1564,10 +1586,8 @@ int bernoulli_criterion_comp(double p)
   double is_select = (double)(rand())/RAND_MAX; 
   return (is_select < p) ? 1 : 0;
 }
-
-
-// double interpolator(double u)
-// {
-
-//   return u_comp;
-// }
+int duummy_crit(int iVer, int m)
+{
+  if(iVer%m == 0){return 1;}
+  else{return 0;}
+}

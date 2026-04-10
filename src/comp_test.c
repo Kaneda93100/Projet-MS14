@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
 
   printf("\n\n\n");
  
-  Mesh* Joc_comp = comp_img(Joc_brut, 5, bernoulli_criterion_comp);
+  Mesh* Joc_comp = comp_img(Joc_brut, 3);
 
   msh_write(Joc_comp, "test.mesh");
 

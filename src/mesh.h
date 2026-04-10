@@ -180,7 +180,8 @@ void insertion(Mesh*, double*);
 
 // Compression
 Mesh* scale_and_init(Mesh*, int);
-Mesh* comp_img(Mesh*, int, int (*)());
+Mesh* comp_img(Mesh*, int);
 int bernoulli_criterion_comp(double);
 double interpolator(double);
 void dummy_insert(Mesh*, double* P);
+int duummy_crit(int iVer, int m);
