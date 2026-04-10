@@ -4,25 +4,26 @@ int main(int argc, char* argv[])
 {
   double to, ti;
   
-  char * joc = "../data/joconde.lowres.mesh";
+  char* joc_msh = "../data/joconde.lowres.mesh";
+  char* joc_sol = "../data/joconde.lowres.sol";
 
   //--- read a mesh
   to        = clock();
-  Mesh* Joc_brut = msh_read(joc, 1);
+  Mesh* Joc_msh = msh_read(joc_msh, 1);
+  double* Joc_sol = sol_read(joc_sol, Joc_msh->Dim, Joc_msh->NbrVer);
   ti        = clock();
 
+  printf("  Vertices   %10d \n", Joc_msh->NbrVer);
+  printf("  Triangles  %10d \n", Joc_msh->NbrTri);
+  printf("  time to read the mesh %lg (s) \n", (ti - to) / CLOCKS_PER_SEC);
+  printf("\n\n\n");
+
+  img* Joc_brut = init_from_mesh(Joc_msh, Joc_sol);
+  img* Joc_comp = comp_img(Joc_brut);
   if (!Joc_brut)
     return 0;
+
+  msh_write(Joc_comp->M, "test.mesh");
   
-  printf("  Vertices   %10d \n", Joc_brut->NbrVer);
-  printf("  Triangles  %10d \n", Joc_brut->NbrTri);
-  printf("  time to read the mesh %lg (s) \n", (ti - to) / CLOCKS_PER_SEC);
-
-  printf("\n\n\n");
- 
-  Mesh* Joc_comp = comp_img(Joc_brut, 3);
-
-  msh_write(Joc_comp, "test.mesh");
-
   return 0;
 }

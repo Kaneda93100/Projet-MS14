@@ -179,8 +179,17 @@ int* compute_cavity(Mesh*, int, double*);
 void insertion(Mesh*, double*);
 
 // Compression
-Mesh* scale_and_init(Mesh*, int);
-Mesh* comp_img(Mesh*, int);
+
+typedef struct IMG
+{
+  Mesh* M;
+  double* sol;
+} img;
+
+img* img_init();
+img* init_from_mesh(Mesh*, double*);
+Mesh* scale_and_init(Mesh*);
+img* comp_img(img*);
 int bernoulli_criterion_comp(double);
 double interpolator(double);
 void dummy_insert(Mesh*, double* P);

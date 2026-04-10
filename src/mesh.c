@@ -1519,14 +1519,51 @@ void insertion(Mesh* Msh, double* P)
   return;
 }
 
-// Compression
-Mesh* scale_and_init(Mesh* Img, int NbrPix)
+//--------------- Compression ---------------//
+
+// Constructeurs
+img* img_init()
+{
+  img* Img = malloc(sizeof(img));
+
+  Img->M = NULL;
+  Img->sol = NULL;
+
+  return Img;
+}
+img* init_from_img(img* Img)
+{
+  img* Img2 = img_init();
+
+  Img2->M   = Img->M;
+  Img2->sol = Img->sol;
+
+  return Img2;
+}
+img* init_from_mesh(Mesh* M, double* sol)
+{
+  img* Img = img_init();
+
+  Img->M = M; 
+  Img->sol = sol;
+
+  return Img;
+}
+img* init_from_qube(int NbrVerMax)
+{
+  img* Img = img_init();
+  
+  Img->M = init_dummy_qube(NbrVerMax);
+  Img->sol = malloc(sizeof(double)*NbrVerMax);
+
+  return Img;
+}
+
+Mesh* scale_and_init(Mesh* Img)
 {
   /*
     Préparer un maillage vide dans lequel on va compresser l'image stockée dans Mesh* Img. On doit rentre 
   */
-
-  if(NbrPix > Img->NbrVer){printf("\n+ de pixel que de point.\n");}
   int succeed = msh_boundingbox(Img);
   if(succeed!=1){printf("Erreur dans le calcul de la bounding box\n");exit(-1);}
 
@@ -1534,7 +1571,7 @@ Mesh* scale_and_init(Mesh* Img, int NbrPix)
   bound[0] = Img->Box[0]; bound[1] = Img->Box[1]; // xmin/xmax
   bound[2] = Img->Box[2]; bound[3] = Img->Box[3]; // ymin/ymax
 
-  Mesh* Img_precomp = init_dummy_qube(NbrPix); 
+  Mesh* Img_precomp = init_dummy_qube(Img->NbrVer); 
 
   Img_precomp->Box[0] = bound[0]; Img_precomp->Box[1] = bound[1]; // set xmin, xmax
   Img_precomp->Box[2] = bound[2]; Img_precomp->Box[3] = bound[3]; // set ymin, ymax
@@ -1548,28 +1585,31 @@ Mesh* scale_and_init(Mesh* Img, int NbrPix)
   // Mettre à jour la bounding box du qube
   return Img_precomp;
 }
-Mesh* comp_img(Mesh* Img, int NbrPix)
+img* comp_img(img* Img)
 {
-  Mesh* Img_comp = scale_and_init(Img, NbrPix);
 
-  int is_selected = 0, k = 0;
+  img* Img_comp = img_init();
+  Img_comp->M = scale_and_init(Img->M);
+  Img_comp->sol = malloc(sizeof(double)*(Img->M->NbrVer+2));
+  for(int i  = 0; i < Img->M->NbrVer+2; i++){Img_comp->sol[i] = 0;} 
+
+  int is_selected = 0, k = 1;
   double2d P; P[0] = 0; P[1] = 0;
   
-  for(int iVer = 1; iVer <= Img->NbrVer; iVer++)
+  for(int iVer = 1; iVer <= Img->M->NbrVer; iVer++)
   {
-    P[0] = Img->Crd[iVer][0]; P[1] = Img->Crd[iVer][1];
+    P[0] = Img->M->Crd[iVer][0]; P[1] = Img->M->Crd[iVer][1];
 
     if(iVer%5 == 0){printf("\n%d\n", iVer);}
     
     is_selected = duummy_crit(iVer, 5);
     if(is_selected == 1)
     { 
-      int is_successful = msh_neighbors(Img_comp);
+      int is_successful = msh_neighbors(Img_comp->M);
       if(is_successful!=1){printf("\n\nErreur dans la construction des voisin de Img_comp.\n\n");exit(-1);}
     
-      if(k == Img_comp->NbrVerMax - 4){return Img_comp;}
-    
-      insertion(Img_comp, P);
+      insertion(Img_comp->M, P);
+      Img_comp->sol[k] = Img->sol[iVer];
       k++;
     }
     else{continue;}
@@ -1591,3 +1631,41 @@ int duummy_crit(int iVer, int m)
   if(iVer%m == 0){return 1;}
   else{return 0;}
 }
+
+
+
+
+
+
+// img* img_precomp(img* Img)
+// {
+//   /*
+//     Préparer un maillage vide dans lequel on va compresser l'image stockée dans Mesh* Img. On doit rentre 
+//   */
+
+//   img* Img_precomp = img_init();
+//   Img_precomp->M = scale_and_init(Img->M);
+
+//   int succeed = msh_boundingbox(Img->M);
+//   if(succeed!=1){printf("Erreur dans le calcul de la bounding box\n");exit(-1);}
+
+//   double4d bound;
+//   bound[0] = Img->M->Box[0]; bound[1] = Img->M->Box[1]; // xmin/xmax
+//   bound[2] = Img->M->Box[2]; bound[3] = Img->M->Box[3]; // ymin/ymax
+
+//   Mesh* precomp = init_dummy_qube(Img->M->NbrVer); 
+
+//   precomp->Box[0] = bound[0]; precomp->Box[1] = bound[1]; // set xmin, xmax
+//   precomp->Box[2] = bound[2]; precomp->Box[3] = bound[3]; // set ymin, ymax
+
+//   // Réajuster les bornes du maillage
+//   precomp->Crd[1][0] = bound[0]; precomp->Crd[1][1] = bound[2]; // scale xmin et ymin
+//   precomp->Crd[2][0] = bound[1]; precomp->Crd[2][1] = bound[2]; // scale xmax et ymin
+//   precomp->Crd[3][0] = bound[1]; precomp->Crd[3][1] = bound[3]; // scale xmax et ymax
+//   precomp->Crd[4][0] = bound[0]; precomp->Crd[4][1] = bound[3]; // scale xmin et ymax
+
+//   Img_precomp->M = precomp;
+
+//   // Mettre à jour la bounding box du qube
+//   return Img_precomp;
+// }
