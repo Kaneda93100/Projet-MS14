@@ -1,6 +1,10 @@
 #include "mesh.h"
 
+#define pi 3.141592653589793238462643383279502884197169399375
+
 int tri2edg[3][2] = { { 1, 2 }, { 2, 0 }, { 0, 1 } };
+
+
 
 Mesh* msh_init()
 {
@@ -775,7 +779,7 @@ int2d* Edges_build(Mesh* Msh)
     }
   }
 
-  int2d* edges = realloc(tmp, sizeof(int2d)*count);
+  int2d* edges = realloc(tmp, sizeof(int2d)*(count+4));
   // printf("Nombre d'arête sur la frontière : %d", count);
   return edges;
 }
@@ -1175,7 +1179,7 @@ int localising(Mesh* Msh, double* P)
   while(is_point_localised(Msh, itri, P) != 1) // Tant que le point n'est pas dans le triangle itri
   {
     // On récupère les coordonnées barycentriques
-    bary = compute_BC(Msh, itri, P);
+    double* bary = compute_BC(Msh, itri, P);
 
     // Les calculs conditionnels ci-dessus dépendent fortement de l'ordre dans lequel les beta0, beta1 et beta2 sont stockés
     if(bary[0] < 0)
@@ -1324,12 +1328,12 @@ void set_NbrVerMax(Mesh* Msh, int M)
 int* compute_cavity(Mesh* Msh, int id_tri, double* P)
 {
   // Initialiser les variables qui seront utilisées
-  int* cavity = malloc(sizeof(int)*20); // Array qui stocvkera les indices des triangles qui seront dans la cavité
-  for(int i = 0; i < 20; i++){cavity[i] = 0;} // Mettre le array à 0 (ce sera utile dans la fonction insertion)
+  int* cavity = malloc(sizeof(int)*100); // Array qui stocvkera les indices des triangles qui seront dans la cavité
+  for(int i = 0; i < 100; i++){cavity[i] = 0;} // Mettre le array à 0 (ce sera utile dans la fonction insertion)
   int index = 0, tri = 0, already_stored = 0; 
 
   // Initialiser la stack
-  stack* stack = stack_init(20);
+  stack* stack = stack_init(100);
   stack->top++;
   stack->array[1] = id_tri;
 
@@ -1558,6 +1562,7 @@ img* init_from_qube(int NbrVerMax)
   return Img;
 }
 
+// Compression
 Mesh* scale_and_init(Mesh* Img)
 {
   /*
@@ -1598,7 +1603,7 @@ img* comp_img(img* Img)
   for(int iVer = 1; iVer <= Img->M->NbrVer; iVer++)
   {
     P[0] = Img->M->Crd[iVer][0]; P[1] = Img->M->Crd[iVer][1];    
-    is_selected = duummy_crit(iVer, 2);
+    is_selected = bernoulli_criterion_comp(iVer, 0.5);
     if(is_selected == 1)
     { 
       int is_successful = msh_neighbors(Img_comp->M);
@@ -1639,6 +1644,55 @@ void write_sol_img(char* path, img* Img)
   return;
 }
 
+// Analyse de la qualité de la compression
+double interpolator(img* Img, double* P)
+{
+  int tri_p = localising(Img->M, P);
+
+  double* bary = compute_BC(Img->M, tri_p, P);
+
+  double interp = 0;
+  for(int i = 0; i < 2; i++)
+  {
+    interp += Img->sol[Img->M->Tri[tri_p][i]]*bary[i];
+  }
+
+  free(bary);
+  return interp;
+}
+int is_in_comp(img* Img, double* P)
+{
+  int tri_p = localising(Img->M, P);
+  int vert = 0;
+  for(int i = 0; i < 3; i++)
+  {
+    vert = Img->M->Tri[tri_p][i];
+    if((Img->M->Crd[vert][0] == P[0] && Img->M->Crd[vert][1] == P[1]) || (Img->M->Crd[vert][0] == P[1] && Img->M->Crd[vert][1] == P[0]))
+    {
+      return 1; // Le point est dans la compression
+    }
+    else{continue;}
+  }
+
+  return 0;
+}
+double psnr(img* Img_brut, img* Img_comp)
+{
+  // Erreur quadratique moyenne 
+  double qc = 0, uc = 0;
+  for(int i = 1; i < Img_brut->M->NbrVer; i++)
+  {
+    if(is_in_comp(Img_comp, Img_brut->M->Crd[i]) == 1){continue;}
+    else
+    {
+      uc = interpolator(Img_comp, Img_brut->M->Crd[i]);
+      qc += pow(Img_brut->sol[i]-uc,2);
+    }
+  }
+  qc *= 1/(Img_brut->M->NbrVer);
+  return 10*log10(pow(255,2)/qc);
+}
+
 // Critères de compression
 int bernoulli_criterion_comp(double p)
 {
@@ -1647,46 +1701,24 @@ int bernoulli_criterion_comp(double p)
   double is_select = (double)(rand())/RAND_MAX; 
   return (is_select < p) ? 1 : 0;
 }
+double gaussian_number(double mu, double sig)
+{
+  /*Simulation d'une gaussienne par la méthode de Box-Muller*/
+
+  double X = ((double) rand())/((double) RAND_MAX);
+  double Y = ((double) rand())/((double) RAND_MAX);
+  double G = sqrt(-2.0*log(X))*cos(2*pi*Y);
+
+  return mu + sig*G;
+}
+int gaussian_crit(double mu, double sig, double p)
+{
+  double X  = gaussian_number(mu, sig);
+  return (X < p) ? 1 : 0;
+}
 int duummy_crit(int iVer, int m)
 {
   if(iVer%m == 0){return 1;}
   else{return 0;}
 }
 
-
-
-
-
-
-// img* img_precomp(img* Img)
-// {
-//   /*
-//     Préparer un maillage vide dans lequel on va compresser l'image stockée dans Mesh* Img. On doit rentre 
-//   */
-
-//   img* Img_precomp = img_init();
-//   Img_precomp->M = scale_and_init(Img->M);
-
-//   int succeed = msh_boundingbox(Img->M);
-//   if(succeed!=1){printf("Erreur dans le calcul de la bounding box\n");exit(-1);}
-
-//   double4d bound;
-//   bound[0] = Img->M->Box[0]; bound[1] = Img->M->Box[1]; // xmin/xmax
-//   bound[2] = Img->M->Box[2]; bound[3] = Img->M->Box[3]; // ymin/ymax
-
-//   Mesh* precomp = init_dummy_qube(Img->M->NbrVer); 
-
-//   precomp->Box[0] = bound[0]; precomp->Box[1] = bound[1]; // set xmin, xmax
-//   precomp->Box[2] = bound[2]; precomp->Box[3] = bound[3]; // set ymin, ymax
-
-//   // Réajuster les bornes du maillage
-//   precomp->Crd[1][0] = bound[0]; precomp->Crd[1][1] = bound[2]; // scale xmin et ymin
-//   precomp->Crd[2][0] = bound[1]; precomp->Crd[2][1] = bound[2]; // scale xmax et ymin
-//   precomp->Crd[3][0] = bound[1]; precomp->Crd[3][1] = bound[3]; // scale xmax et ymax
-//   precomp->Crd[4][0] = bound[0]; precomp->Crd[4][1] = bound[3]; // scale xmin et ymax
-
-//   Img_precomp->M = precomp;
-
-//   // Mettre à jour la bounding box du qube
-//   return Img_precomp;
-// }

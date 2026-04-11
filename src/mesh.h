@@ -190,9 +190,14 @@ img* img_init();
 img* init_from_mesh(Mesh*, double*);
 Mesh* scale_and_init(Mesh*);
 img* comp_img(img*);
-void write_sol(char*, double*);
+void write_sol_img(char*, img*);
 
+int is_in_comp(img*, double*);
+double psnr(img* Img_brut, img* Img_comp);
+double interpolator(img*, double*);
+
+double gaussian_number(double mu, double sig);
+int gaussian_crit(double mu, double sig, double p);
 int bernoulli_criterion_comp(double);
-double interpolator(double);
 void dummy_insert(Mesh*, double* P);
 int duummy_crit(int iVer, int m);

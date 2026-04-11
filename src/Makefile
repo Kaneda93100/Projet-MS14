@@ -23,4 +23,4 @@ main_mesh.o :	main_mesh.c mesh.h
 comp_test.o : comp_test.c mesh.h
 	$(CC) -c $(COPTS)  -I. comp_test.c
 clean :
-	-rm mesh.exe comp_test.exe comp_test.o mesh.o main_mesh.o eigen.o libmesh6.o 
+	-del /f /q mesh.exe comp_test.exe comp_test.o mesh.o main_mesh.o eigen.o libmesh6.o Joc_comp.sol Joc_comp.mesh

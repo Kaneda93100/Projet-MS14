@@ -19,12 +19,16 @@ int main(int argc, char* argv[])
   printf("\n\n\n");
 
   img* Joc_brut = init_from_mesh(Joc_msh, Joc_sol);
+  printf("\nDébut de la compression\n");
   img* Joc_comp = comp_img(Joc_brut);
   if (!Joc_brut)
     return 0;
 
-  int succeed = msh_neighbors(Joc_comp->M);
+  msh_neighbors(Joc_comp->M);
   write_sol_img("Joc_comp", Joc_comp);
-  
+  printf("Jusqu'ici tout vas bien");
+  printf("\nPSNR : %f\n", psnr(Joc_brut, Joc_comp));
+
+
   return 0;
 }
