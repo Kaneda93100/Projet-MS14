@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
 
   img* Joc_brut = init_from_mesh(Joc_msh, Joc_sol);
   printf("\nDébut de la compression\n");
-  img* Joc_comp = comp_img(Joc_brut);
+  img* Joc_comp = psnr_comp(Joc_brut, 20.7);
   if (!Joc_brut)
     return 0;
 

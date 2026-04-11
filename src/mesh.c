@@ -704,8 +704,6 @@ int msh_neighbors(Mesh* Msh)
         Pas important (la fonction agit comme un void sur Msh).
   */
 
-  double start = clock();
-
   int iTri, iEdg, iVer1, iVer2, tri;
   volatile HashTable* hsh = Hash_build(Msh);
 
@@ -746,11 +744,6 @@ int msh_neighbors(Mesh* Msh)
       }
     }
   }
-  double stop = clock();
-  // printf("Table de hachage calculée en %lg seconde(s) \n", (stop - start) / CLOCKS_PER_SEC);
-
-  // printf("Nombre d'arêtes récupérées : %d\n", hsh->NbrObj);
-  
   hash_free(hsh);
   return 1;
 }
@@ -1557,66 +1550,37 @@ img* init_from_qube(int NbrVerMax)
   img* Img = img_init();
   
   Img->M = init_dummy_qube(NbrVerMax);
-  Img->sol = malloc(sizeof(double)*NbrVerMax);
+  Img->sol = malloc(sizeof(double)*(NbrVerMax+1));
+  for(int i = 0; i <= NbrVerMax; i++){Img->sol[i] = 0;}
 
   return Img;
 }
-
-// Compression
-Mesh* scale_and_init(Mesh* Img)
+void scale_and_init(Mesh* Ref, Mesh* Img)
 {
   /*
     Préparer un maillage vide dans lequel on va compresser l'image stockée dans Mesh* Img. On doit rentre 
   */
-  int succeed = msh_boundingbox(Img);
+  int succeed = msh_boundingbox(Ref);
+  if(succeed!=1){printf("Erreur dans le calcul de la bounding box\n");exit(-1);}
+  succeed = msh_boundingbox(Img);
   if(succeed!=1){printf("Erreur dans le calcul de la bounding box\n");exit(-1);}
 
   double4d bound;
-  bound[0] = Img->Box[0]; bound[1] = Img->Box[1]; // xmin/xmax
-  bound[2] = Img->Box[2]; bound[3] = Img->Box[3]; // ymin/ymax
+  bound[0] = Ref->Box[0]; bound[1] = Ref->Box[1]; // xmin/xmax
+  bound[2] = Ref->Box[2]; bound[3] = Ref->Box[3]; // ymin/ymax
 
-  Mesh* Img_precomp = init_dummy_qube(Img->NbrVer); 
-
-  Img_precomp->Box[0] = bound[0]; Img_precomp->Box[1] = bound[1]; // set xmin, xmax
-  Img_precomp->Box[2] = bound[2]; Img_precomp->Box[3] = bound[3]; // set ymin, ymax
+  Img->Box[0] = bound[0]; Img->Box[1] = bound[1]; // set xmin, xmax
+  Img->Box[2] = bound[2]; Img->Box[3] = bound[3]; // set ymin, ymax
 
   // Réajuster les bornes du maillage
-  Img_precomp->Crd[1][0] = bound[0]; Img_precomp->Crd[1][1] = bound[2]; // scale xmin et ymin
-  Img_precomp->Crd[2][0] = bound[1]; Img_precomp->Crd[2][1] = bound[2]; // scale xmax et ymin
-  Img_precomp->Crd[3][0] = bound[1]; Img_precomp->Crd[3][1] = bound[3]; // scale xmax et ymax
-  Img_precomp->Crd[4][0] = bound[0]; Img_precomp->Crd[4][1] = bound[3]; // scale xmin et ymax
+  Img->Crd[1][0] = bound[0]; Img->Crd[1][1] = bound[2]; // scale xmin et ymin
+  Img->Crd[2][0] = bound[1]; Img->Crd[2][1] = bound[2]; // scale xmax et ymin
+  Img->Crd[3][0] = bound[1]; Img->Crd[3][1] = bound[3]; // scale xmax et ymax
+  Img->Crd[4][0] = bound[0]; Img->Crd[4][1] = bound[3]; // scale xmin et ymax
 
+  msh_neighbors(Img);
   // Mettre à jour la bounding box du qube
-  return Img_precomp;
-}
-img* comp_img(img* Img)
-{
-
-  img* Img_comp = img_init();
-  Img_comp->M = scale_and_init(Img->M);
-  Img_comp->sol = malloc(sizeof(double)*(Img->M->NbrVer+2));
-  for(int i  = 0; i < Img->M->NbrVer+2; i++){Img_comp->sol[i] = 0;} 
-
-  int is_selected = 0, k = 1;
-  double2d P; P[0] = 0; P[1] = 0;
-  
-  for(int iVer = 1; iVer <= Img->M->NbrVer; iVer++)
-  {
-    P[0] = Img->M->Crd[iVer][0]; P[1] = Img->M->Crd[iVer][1];    
-    is_selected = bernoulli_criterion_comp(iVer, 0.5);
-    if(is_selected == 1)
-    { 
-      int is_successful = msh_neighbors(Img_comp->M);
-      if(is_successful!=1){printf("\n\nErreur dans la construction des voisin de Img_comp.\n\n");exit(-1);}
-    
-      insertion(Img_comp->M, P);
-      Img_comp->sol[k] = Img->sol[iVer];
-      k++;
-    }
-    else{continue;}
-  }
-
-  return Img_comp;
+  return;
 }
 void write_sol_img(char* path, img* Img)
 {
@@ -1644,7 +1608,122 @@ void write_sol_img(char* path, img* Img)
   return;
 }
 
+// Compression
+img* dummy_comp_img(img* Img, int mod)
+{
+  img* Img_comp = init_from_qube(Img->M->NbrVerMax);
+  scale_and_init(Img->M, Img_comp->M);
+
+  int is_selected = 0, k = 1;
+  double2d P; P[0] = 0; P[1] = 0;
+  
+  for(int iVer = 1; iVer <= Img->M->NbrVer; iVer++)
+  {
+    P[0] = Img->M->Crd[iVer][0]; P[1] = Img->M->Crd[iVer][1];    
+    is_selected = duummy_crit(iVer, mod); // Prendre 1 noeuds sur mod dans l'image brute
+    if(is_selected == 1)
+    { 
+      int is_successful = msh_neighbors(Img_comp->M);
+      if(is_successful!=1){printf("\n\nErreur dans la construction des voisin de Img_comp.\n\n");exit(-1);}
+    
+      insertion(Img_comp->M, P);
+      Img_comp->sol[k] = Img->sol[iVer];
+      k++;
+    }
+    else{continue;}
+  }
+
+  return Img_comp;
+}
+img* random_comp_img(img* Img, double B)
+{
+  double para = (0 < B) ? B : -B;
+  para = (B < 1) ? B : 0.5;
+
+  img* Img_comp = init_from_qube(Img->M->NbrVerMax);
+  scale_and_init(Img->M, Img_comp->M);
+  Img_comp->sol = malloc(sizeof(double)*(Img->M->NbrVer+2));
+  for(int i  = 0; i < Img->M->NbrVer+2; i++){Img_comp->sol[i] = 0;} 
+
+  int is_selected = 0, k = 1;
+  double2d P; P[0] = 0; P[1] = 0;
+  
+  for(int iVer = 1; iVer <= Img->M->NbrVer; iVer++)
+  {
+    P[0] = Img->M->Crd[iVer][0]; P[1] = Img->M->Crd[iVer][1];    
+    is_selected = bernoulli_criterion_comp(para); // 
+    if(is_selected == 1)
+    { 
+      int is_successful = msh_neighbors(Img_comp->M);
+      if(is_successful!=1){printf("\n\nErreur dans la construction des voisin de Img_comp.\n\n");exit(-1);}
+    
+      insertion(Img_comp->M, P);
+      Img_comp->sol[k] = Img->sol[iVer];
+      k++;
+    }
+    else{continue;}
+  }
+
+  return Img_comp;
+}
+img* psnr_comp(img* Img, double target)
+{
+  // Initialiser le conteneur de l'image compressée
+  img* Img_comp = init_from_qube(Img->M->NbrVerMax);
+  scale_and_init(Img->M, Img_comp->M);
+
+  // Initialiser le while
+  double qc = psnr(Img, Img_comp);
+  double air_max = 0, err_temp = 0; // erreur maximale enregistrée & erreur à l'échelle d'une étape
+  int i_air_max = 4, index_sol = 0; // position du noeud maximisant l'erreur maximale
+  double* P = malloc(sizeof(double)*2);
+
+  while(qc < target)
+  { 
+    // Trouver le pixel ayant l'EQ la plus forte
+    int i = 0;
+    air_max = 0; i_air_max = 0; 
+    for(i = 1; i <= Img->M->NbrVer; i++)
+    {
+      P[0] = Img->M->Crd[i][0]; P[1] = Img->M->Crd[i][1];
+      if(is_in_comp(Img_comp, P) == 1){continue;}      
+     
+      err_temp = pow(interpolator(Img_comp, P) - Img->sol[i], 2); 
+      i_air_max = (air_max < err_temp) ? i : i_air_max;
+      air_max = (air_max < err_temp) ? err_temp : air_max;
+    } 
+
+    // Mettre à jour l'image compressée
+    P[0] = Img->M->Crd[i_air_max][0]; P[1] = Img->M->Crd[i_air_max][1];
+    insertion(Img_comp->M, P);
+    msh_neighbors(Img_comp->M);
+    Img_comp->sol[index_sol+5] = Img->sol[i_air_max];
+    index_sol++;
+
+    printf("\ntarget - psnr : %f", target - qc);
+    qc = psnr(Img, Img_comp);
+  }
+
+  free(P);
+  return Img_comp;
+}
+
 // Analyse de la qualité de la compression
+double EQM(img* Img_brut, img* Img_comp)
+{
+  double qc = 0, uc = 0;
+  for(int i = 1; i < Img_brut->M->NbrVer; i++)
+  {
+    if(is_in_comp(Img_comp, Img_brut->M->Crd[i]) == 1){continue;}
+    else
+    {
+      uc = interpolator(Img_comp, Img_brut->M->Crd[i]);
+      qc += pow(Img_brut->sol[i]-uc, 2);
+    }
+  }
+  qc *= 1./(Img_brut->M->NbrVer);
+  return qc;
+}
 double interpolator(img* Img, double* P)
 {
   int tri_p = localising(Img->M, P);
@@ -1652,7 +1731,7 @@ double interpolator(img* Img, double* P)
   double* bary = compute_BC(Img->M, tri_p, P);
 
   double interp = 0;
-  for(int i = 0; i < 2; i++)
+  for(int i = 0; i < 3; i++)
   {
     interp += Img->sol[Img->M->Tri[tri_p][i]]*bary[i];
   }
@@ -1678,19 +1757,7 @@ int is_in_comp(img* Img, double* P)
 }
 double psnr(img* Img_brut, img* Img_comp)
 {
-  // Erreur quadratique moyenne 
-  double qc = 0, uc = 0;
-  for(int i = 1; i < Img_brut->M->NbrVer; i++)
-  {
-    if(is_in_comp(Img_comp, Img_brut->M->Crd[i]) == 1){continue;}
-    else
-    {
-      uc = interpolator(Img_comp, Img_brut->M->Crd[i]);
-      qc += pow(Img_brut->sol[i]-uc,2);
-    }
-  }
-  qc *= 1/(Img_brut->M->NbrVer);
-  return 10*log10(pow(255,2)/qc);
+  return 10*log10(pow(255,2)/EQM(Img_brut, Img_comp));
 }
 
 // Critères de compression

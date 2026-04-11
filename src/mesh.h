@@ -186,18 +186,26 @@ typedef struct IMG
   double* sol;
 } img;
 
+// Constructeurs & autres
 img* img_init();
 img* init_from_mesh(Mesh*, double*);
-Mesh* scale_and_init(Mesh*);
-img* comp_img(img*);
+img* init_from_qube(int);
+void scale_and_init(Mesh*, Mesh*);
 void write_sol_img(char*, img*);
 
+// Compresseurs
+img* dummy_comp_img(img*, int);
+img* random_comp_img(img*, double);
+img* psnr_comp(img*, double);
+
+// Analyse de la qualité de la compression
+double EQM(img*, img*);
 int is_in_comp(img*, double*);
-double psnr(img* Img_brut, img* Img_comp);
+double psnr(img* , img*);
 double interpolator(img*, double*);
 
-double gaussian_number(double mu, double sig);
-int gaussian_crit(double mu, double sig, double p);
+double gaussian_number(double, double);
+int gaussian_crit(double, double, double);
 int bernoulli_criterion_comp(double);
-void dummy_insert(Mesh*, double* P);
-int duummy_crit(int iVer, int m);
+void dummy_insert(Mesh*, double*);
+int duummy_crit(int, int);
