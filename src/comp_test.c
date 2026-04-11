@@ -4,8 +4,8 @@ int main(int argc, char* argv[])
 {
   double to, ti;
   
-  char* joc_msh = "../data/joconde.lowres.mesh";
-  char* joc_sol = "../data/joconde.lowres.sol";
+  char* joc_msh = "../data/joconde.mesh";
+  char* joc_sol = "../data/joconde.sol";
 
   //--- read a mesh
   to        = clock();
@@ -20,7 +20,17 @@ int main(int argc, char* argv[])
 
   img* Joc_brut = init_from_mesh(Joc_msh, Joc_sol);
   printf("\nDébut de la compression\n");
-  img* Joc_comp = psnr_comp(Joc_brut, 20.7);
+  img* Joc_precomp1 = dummy_comp_img(Joc_brut, 100);
+  //img* Joc_precomp2 = dummy_comp_img(Joc_precomp1, 10);
+
+  int print_precomp = 1;
+  if(print_precomp == 1)
+  {
+    msh_neighbors(Joc_precomp1->M);
+    write_sol_img("Joc_comp", Joc_precomp1);
+    return 0;
+  }
+  img* Joc_comp = psnr_comp(Joc_precomp1, 35);
   if (!Joc_brut)
     return 0;
 

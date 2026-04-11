@@ -671,7 +671,7 @@ volatile HashTable* Hash_build(Mesh* Msh)
   }
 
   // Initialiser la table de hachage
-  volatile HashTable* hsh = hash_init(3*Msh->NbrVerMax , 3*Msh->NbrVerMax);
+  volatile HashTable* hsh = hash_init(2*Msh->NbrVerMax , 3*Msh->NbrVerMax);
 
     // Construction effective de la table
   for(iTri = 1; iTri <= Msh->NbrTri; iTri++){
@@ -1667,7 +1667,7 @@ img* random_comp_img(img* Img, double B)
   return Img_comp;
 }
 img* psnr_comp(img* Img, double target)
-{
+{ 
   // Initialiser le conteneur de l'image compressée
   img* Img_comp = init_from_qube(Img->M->NbrVerMax);
   scale_and_init(Img->M, Img_comp->M);
@@ -1707,6 +1707,7 @@ img* psnr_comp(img* Img, double target)
   free(P);
   return Img_comp;
 }
+
 
 // Analyse de la qualité de la compression
 double EQM(img* Img_brut, img* Img_comp)
