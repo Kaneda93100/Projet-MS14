@@ -8,7 +8,7 @@ Pour tester les codes, on dispose de 3 fichiers :
 - **hsh_table.c** dans lequel il est possible de tester les méthodes implémentées dans la première partie (notamment autour des tables de hachages)
 On compile le projet avec la commande suivante : *mingw32-make hsh_table*  et que l'on execute avec *./hsh_table.exe*
 
--**insertion.c** dans lequel on teste la méthode d'insertion d'un point dans un maillage, que l'on compile avec *mingw32-make insertion* et que l'on exécute avec 
+- **insertion.c** dans lequel on teste la méthode d'insertion d'un point dans un maillage, que l'on compile avec *mingw32-make insertion* et que l'on exécute avec 
 *./insertion.exe*.
 
 - **compression.c** dans lequel on teste les méthodes de compressions d'image, que l'on compile avec *mingw-make compression* et que l'on exécute avec 
