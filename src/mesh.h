@@ -121,23 +121,23 @@ int msh_boundingbox(Mesh* Msh); // compute the bouding box of the mesh
 int msh_neighborsQ2(Mesh* Msh); // build TriVoi with the naive quadratic approach
 
 // Initialisation et construction des tables de hachages
-volatile HashTable* hash_init(int SizHead, int NbrMaxObj); // alloc and set htable ==> allocate Head, LstObj
-volatile HashTable* Hash_build(Mesh* Msh); // Construire la table de hachage
-void hash_free(volatile HashTable* Hsh); // Supprimer les emplacements mémoires associés à une table de hachage.
+HashTable* hash_init(int SizHead, int NbrMaxObj); // alloc and set htable ==> allocate Head, LstObj
+HashTable* Hash_build(Mesh* Msh); // Construire la table de hachage
+void hash_free(HashTable* Hsh); // Supprimer les emplacements mémoires associés à une table de hachage.
 
 //--- Diverses méthodes sur les HashTable
-void hash_cout_head(volatile HashTable* hsh, int Key); // Afficher les éléments d'une tête
-void hash_cout(volatile HashTable* hsh); // Afficher la table par clé
-void LstObj_cout(volatile HashTable*); // Afficher la table de hachage objet par objet
-void Head_cout(volatile HashTable*); // Afficher la liste des têtes
+void hash_cout_head(HashTable* hsh, int Key); // Afficher les éléments d'une tête
+void hash_cout(HashTable* hsh); // Afficher la table par clé
+void LstObj_cout(HashTable*); // Afficher la table de hachage objet par objet
+void Head_cout(HashTable*); // Afficher la liste des têtes
 
-int hash_count_head(volatile HashTable* hsh, int id); // Compter le nombre d'éléments d'une tête
-int* hash_biggest_head(volatile HashTable*);
-double Av_colision(volatile HashTable*);
+int hash_count_head(HashTable* hsh, int id); // Compter le nombre d'éléments d'une tête
+int* hash_biggest_head(HashTable*);
+double Av_colision(HashTable*);
 
-int hash_find(volatile HashTable* hsh, int iVer1, int iVer2); // return the id found (in LstObj ), if 0 the object is not in the list
-int hash_add(volatile HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> add this entry in the hash tab
-int hash_suppr(volatile HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> suppress this entry in the hash tab
+int hash_find(HashTable* hsh, int iVer1, int iVer2); // return the id found (in LstObj ), if 0 the object is not in the list
+int hash_add(HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> add this entry in the hash tab
+int hash_suppr(HashTable* hsh, int iVer1, int iVer2, int iTri); // ==> suppress this entry in the hash tab
 
 // Utiliser les tables de hachages pour construire les voisins 
 int msh_neighbors(Mesh* Msh); // build TriVoi with a hash table
@@ -194,14 +194,18 @@ void scale_and_init(Mesh*, Mesh*);
 void write_sol_img(char*, img*);
 
 // Compresseurs
-img* dummy_comp_img(img*, int);
-img* random_comp_img(img*, double);
+img* dummy_comp(img*, int);
+img* random_comp(img*, double);
+img* gaussian_comp(img*, double, double, double);
 img* psnr_comp(img*, double);
+img* psnr_comp_opt(img*,double);
 
 // Analyse de la qualité de la compression
 double EQM(img*, img*);
+double EQM_optimised(img*, img*);
 int is_in_comp(img*, double*);
 double psnr(img* , img*);
+double psnr_opt(img*, img*);
 double interpolator(img*, double*);
 
 double gaussian_number(double, double);

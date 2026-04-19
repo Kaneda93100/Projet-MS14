@@ -1,0 +1,6 @@
+/Rapport/*
+*.exe
+*.o
+*.mesh
+*.sol
+*.solb

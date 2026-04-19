@@ -224,6 +224,21 @@ Mesh* msh_read(char* file, int readEfr)
 
   return Msh;
 }
+void msh_free(Mesh* Msh)
+{
+  free(Msh->Crd);
+  free(Msh->Tri);
+  free(Msh->TriVoi);
+  free(Msh->TriRef);
+  free(Msh->TriMrk);
+
+  free(Msh->Efr);
+  free(Msh->EfrVoi);
+  free(Msh->EfrRef);
+  free(Msh->Edg);
+
+  free(Msh);
+}
 double* sol_read(char* file, int mshDim, int mshNbrSol)
 {
   char   InpFil[1024];
@@ -406,7 +421,7 @@ int msh_neighborsQ2(Mesh* Msh)
 }
 
 // Méthodes sur les HashTable
-volatile HashTable* hash_init(int SizHead, int NbrMaxObj) 
+HashTable* hash_init(int SizHead, int NbrMaxObj) 
 {
   HashTable* hsh = malloc(sizeof(HashTable)); 
 
@@ -421,7 +436,7 @@ volatile HashTable* hash_init(int SizHead, int NbrMaxObj)
 
   return hsh;
 }
-int hash_find(volatile HashTable* hsh, int iVer1, int iVer2) 
+int hash_find(HashTable* hsh, int iVer1, int iVer2) 
 { 
   int k = hsh->Head[iVer1+iVer2];
 
@@ -436,7 +451,7 @@ int hash_find(volatile HashTable* hsh, int iVer1, int iVer2)
   }
   return 0; // Arête non trouvée
 }
-int hash_add(volatile HashTable* hsh, int iVer1, int iVer2, int iTri) 
+int hash_add(HashTable* hsh, int iVer1, int iVer2, int iTri) 
 {
   if(hsh->NbrObj + 1 > hsh->NbrMaxObj)
   {
@@ -457,7 +472,7 @@ int hash_add(volatile HashTable* hsh, int iVer1, int iVer2, int iTri)
       hsh->LstObj[hsh->NbrObj+1][4] = 0;
 
       //Mise à jour de la table
-      volatile int k = hsh->Head[iVer1+iVer2];
+      int k = hsh->Head[iVer1+iVer2];
       while(hsh->LstObj[k][4]!=0){k=hsh->LstObj[k][4];}
       hsh->LstObj[k][4] = hsh->NbrObj+1;
       hsh->NbrObj++;
@@ -481,7 +496,7 @@ int hash_add(volatile HashTable* hsh, int iVer1, int iVer2, int iTri)
   }
   return 0;
 }
-int hash_suppr(volatile HashTable* hsh, int iVer1, int iVer2, int iTri)
+int hash_suppr(HashTable* hsh, int iVer1, int iVer2, int iTri)
 {
 
   // to be implemented
@@ -491,7 +506,7 @@ int hash_suppr(volatile HashTable* hsh, int iVer1, int iVer2, int iTri)
   return 0;
 }
 
-int hash_count_head(volatile HashTable* hsh, int id)
+int hash_count_head(HashTable* hsh, int id)
 {
   /*
     Fonction qui compte le nombre d'élément dans une table de hachage. 
@@ -509,7 +524,7 @@ int hash_count_head(volatile HashTable* hsh, int id)
 
   return count;
 }
-int* hash_biggest_head(volatile HashTable* hsh)
+int* hash_biggest_head(HashTable* hsh)
 {
   /*
     Retrouve la tête dans laquelle il y a le plus d'éléments.
@@ -537,7 +552,7 @@ int* hash_biggest_head(volatile HashTable* hsh)
   
   return output;
 }
-double Av_colision(volatile HashTable* hsh)
+double Av_colision(HashTable* hsh)
 {
   /*
     Fonction qui calcule le nombre moyen de colision dans la table de hachage.
@@ -574,13 +589,13 @@ stack_edg* stack_edg_init(int size)
 
   return s;
 }
-void stack_edg_add(stack_edg* s, int2d* new)
+void stack_edg_add(stack_edg* s, int2d* n)
 {
   /* Ajoute un élément à la stack. */
 
   s->top++;
-  s->list[s->top][0] = new[0];
-  s->list[s->top][1] = new[1];
+  s->list[s->top][0] = n[0][0];
+  s->list[s->top][1] = n[0][1];
 
   return;
 }
@@ -639,8 +654,13 @@ void stack_cout(stack* s)
   for(int i = 0; i <= s->top; i++){printf("%d : %d\n", i, s->array[i]);}
   return;
 }
+void stack_free(stack*s)
+{
+  free(s->array);
+  free(s);
+}
 
-volatile HashTable* Hash_build(Mesh* Msh)
+HashTable* Hash_build(Mesh* Msh)
 {
 
   /*
@@ -669,9 +689,10 @@ volatile HashTable* Hash_build(Mesh* Msh)
       Msh->TriVoi[i][v] = 0;
     }
   }
-
+  
+  int memalloc_hsh = (Msh->NbrVerMax < Msh->NbrTri) ? 3*Msh->NbrVerMax : Msh->NbrTriMax;
   // Initialiser la table de hachage
-  volatile HashTable* hsh = hash_init(2*Msh->NbrVerMax , 3*Msh->NbrVerMax);
+  HashTable* hsh = hash_init(2*Msh->NbrVerMax, memalloc_hsh);
 
     // Construction effective de la table
   for(iTri = 1; iTri <= Msh->NbrTri; iTri++){
@@ -685,12 +706,13 @@ volatile HashTable* Hash_build(Mesh* Msh)
 
   return hsh;
 }
-void hash_free(volatile HashTable* Hsh)
+void hash_free(HashTable* Hsh)
 {
   /*Libérer la mémoire allouée à une table de hachage*/
 
   free(Hsh->LstObj);
   free(Hsh->Head);
+  free(Hsh);
 }
 
 int msh_neighbors(Mesh* Msh)
@@ -705,7 +727,7 @@ int msh_neighbors(Mesh* Msh)
   */
 
   int iTri, iEdg, iVer1, iVer2, tri;
-  volatile HashTable* hsh = Hash_build(Msh);
+  HashTable* hsh = Hash_build(Msh);
 
   // for(int k = 0; k < hsh->SizHead; k++){printf(" %d ", hsh->Head[k]);}
 
@@ -758,7 +780,7 @@ int2d* Edges_build(Mesh* Msh)
           - liste des noeuds sur le bord (les indices)
   */
   
-  volatile HashTable* hsh = Hash_build(Msh);
+  HashTable* hsh = Hash_build(Msh);
   int2d* tmp = malloc(sizeof(int2d)*hsh->NbrObj);
 
   int count = 0;
@@ -773,7 +795,6 @@ int2d* Edges_build(Mesh* Msh)
   }
 
   int2d* edges = realloc(tmp, sizeof(int2d)*(count+4));
-  // printf("Nombre d'arête sur la frontière : %d", count);
   return edges;
 }
 
@@ -783,7 +804,7 @@ void coloriage_magique(Mesh* Msh)
     A corriger : remplacer int* stack par stack* stack et réadapter l'algorithme en conséquence
   */
  
-  int* stack = malloc(sizeof(int) * Msh->NbrTri); stack[0] = 0; // stack* stack = stack_init(Msh->NbrTri);
+  int* stack = malloc(sizeof(int) * Msh->NbrTri); stack[0] = 0;
   int top = 0;
   int color = 0;
   int iTri, tri, voi;
@@ -833,6 +854,7 @@ void coloriage_magique(Mesh* Msh)
     }
   }
   
+  free(stack);
   // On écrit directement dans l'attribut TriRef de Msh, donc pas d'objet à retourner.
   return; 
 }
@@ -883,7 +905,7 @@ void Edges_vertices_cout(Mesh* Msh)
 
   return;
 }
-void hash_cout_head(volatile HashTable* hsh, int Key)
+void hash_cout_head(HashTable* hsh, int Key)
 {  
   /*
     Fonction qui affiche la liste associée à une certaine clé de la table de hachage. 
@@ -908,7 +930,7 @@ void hash_cout_head(volatile HashTable* hsh, int Key)
 
   return;
 }
-void hash_cout(volatile HashTable* hsh)
+void hash_cout(HashTable* hsh)
 { 
   /*
     Fonction d'affichage de toute la table de hachage, tête par tête.
@@ -920,8 +942,8 @@ void hash_cout(volatile HashTable* hsh)
   */
 
   printf("Affichage de la table de hachage.\n");
-  for (volatile int j = 0; j < hsh->SizHead; j++){printf(" %d ", hsh->Head[j]);}
-  for(volatile int i = 0; i < hsh->SizHead; i++)
+  for (int j = 0; j < hsh->SizHead; j++){printf(" %d ", hsh->Head[j]);}
+  for(int i = 0; i < hsh->SizHead; i++)
   {
     if(i == 0){printf("\n");}
     if(hsh->Head[i] == 0){continue;}
@@ -937,7 +959,7 @@ void hash_cout(volatile HashTable* hsh)
 
   return;
 }
-void LstObj_cout(volatile HashTable* hsh)
+void LstObj_cout(HashTable* hsh)
 {
   /*
     Fonction d'affichage de la table de hachage objet par objet. 
@@ -958,7 +980,7 @@ void LstObj_cout(volatile HashTable* hsh)
   
   return;
 }
-void Head_cout(volatile HashTable* hsh)
+void Head_cout(HashTable* hsh)
 {
   for(int k = 0; k < hsh->SizHead; k++){printf(" %d ", hsh->Head[k]);}
   return;
@@ -1125,7 +1147,7 @@ double* compute_BC(Mesh* Msh, int id_tri, double* P)
   Coord_bary[1] = (0.5/vol_tri)*((P[0] - P0[0])*(P2[1] - P0[1]) - (P2[0] - P0[0])*(P[1] - P0[1])); // |P0 P P2|
   Coord_bary[2] = (0.5/vol_tri)*((P1[0] - P0[0])*(P[1] - P0[1]) - (P[0] - P0[0])*(P1[1] - P0[1])); // |P0 P1 P|
 
-  free(P0);free(P1);free(P2);
+  free(P0); free(P1); free(P2);
   return Coord_bary;
 }
 int is_point_localised(Mesh* Msh, int id_tri, double* P)
@@ -1167,17 +1189,18 @@ int localising(Mesh* Msh, double* P)
   /*Pour l'instant, on fait l'hypothèse que le maillage est convexe.*/
   
   int itri = 1, count = 0;
-  double* bary = malloc(sizeof(double)*3); for(int i = 0; i < 3; i++){bary[i] = 0;} 
+  double* bary = NULL;
 
   while(is_point_localised(Msh, itri, P) != 1) // Tant que le point n'est pas dans le triangle itri
   {
     // On récupère les coordonnées barycentriques
-    double* bary = compute_BC(Msh, itri, P);
+    bary = compute_BC(Msh, itri, P);
 
     // Les calculs conditionnels ci-dessus dépendent fortement de l'ordre dans lequel les beta0, beta1 et beta2 sont stockés
     if(bary[0] < 0)
     {
       itri = identify_voi(Msh, itri, Msh->Tri[itri][1], Msh->Tri[itri][2]); // Assigner le bon voisin
+      //printf("\n%d\n", itri);
       if(itri == -1){printf("Erreur dans l'idenfication du voinsin.\n");exit(-1);}
     }
     else 
@@ -1185,19 +1208,21 @@ int localising(Mesh* Msh, double* P)
       if(bary[0] >= 0 && bary[1] < 0)
       {
         itri = identify_voi(Msh,itri,Msh->Tri[itri][0], Msh->Tri[itri][2]);
+        //printf("\n%d\n", itri);
         if(itri == -1){printf("Erreur dans l'idenfication du voinsin.\n");exit(-1);}
       }
       if(bary[0] >= 0 && bary[1] >= 0)
       {
         itri = identify_voi(Msh, itri, Msh->Tri[itri][0], Msh->Tri[itri][1]);
+        //printf("\n%d\n", itri);
         if(itri == -1){printf("Erreur dans l'idenfication du voinsin.\n");exit(-1);}
       }
     }
     for(int i = 0; i < 3; i++){bary[i] = 0;} // Réinitialiser les baricentres par sécurités
     count++;
+    free(bary);
+    bary = NULL;
   }
-
-  free(bary);
 
   return itri;
 }
@@ -1306,6 +1331,7 @@ int empty_sphere_criterion(Mesh* Msh, int id_tri, double* P)
 
   bool = (dist < ray) ? 0 : 1;
 
+  free(centre);
   return bool;
 }
 
@@ -1321,7 +1347,7 @@ void set_NbrVerMax(Mesh* Msh, int M)
 int* compute_cavity(Mesh* Msh, int id_tri, double* P)
 {
   // Initialiser les variables qui seront utilisées
-  int* cavity = malloc(sizeof(int)*100); // Array qui stocvkera les indices des triangles qui seront dans la cavité
+  int* cavity = malloc(sizeof(int)*150); // Array qui stocvkera les indices des triangles qui seront dans la cavité
   for(int i = 0; i < 100; i++){cavity[i] = 0;} // Mettre le array à 0 (ce sera utile dans la fonction insertion)
   int index = 0, tri = 0, already_stored = 0; 
 
@@ -1357,7 +1383,7 @@ int* compute_cavity(Mesh* Msh, int id_tri, double* P)
       else{already_stored = 0;}
     } 
   }
-
+  stack_free(stack);
   return cavity;
 }
 void insertion(Mesh* Msh, double* P)
@@ -1386,7 +1412,7 @@ void insertion(Mesh* Msh, double* P)
   int it = 0;
   while(bat_cavity[it] != 0){it++;}
 
-  int* ver_cav = malloc(sizeof(int)*20); int j = 0, already_stored = 0, tri = 0, ver = 0;
+  int* ver_cav = malloc(sizeof(int)*150); int j = 0, already_stored = 0, tri = 0, ver = 0;
   for(int i = 0; i < 20; i++){ver_cav[i] = 0;}
   
   while(bat_cavity[tri] != 0)
@@ -1413,6 +1439,7 @@ void insertion(Mesh* Msh, double* P)
   // Initialiser le bat_mesh 
   Mesh* bat_mesh = msh_init();
   bat_mesh->NbrTri = it;
+  bat_mesh->NbrTriMax = Msh->NbrTriMax;
   bat_mesh->NbrVer = j;
   bat_mesh->NbrVerMax = Msh->NbrVerMax;
   bat_mesh->Tri = malloc(sizeof(int3d)*(it+1));
@@ -1429,9 +1456,8 @@ void insertion(Mesh* Msh, double* P)
   if(is_bat_mesh_op == 0){printf("\nEchec dans l'écriture de bat_mesh.\n");}
 
   int2d* node_on_edge = Edges_build(bat_mesh);
-
-  free(bat_mesh->Crd);
-  free(bat_mesh->Tri);
+  
+  msh_free(bat_mesh);
 
   /* 
     it == nombre de triangle que l'on a retiré dans le maillage, j == nombre de triangle qu'il faut ajouter
@@ -1510,8 +1536,14 @@ void insertion(Mesh* Msh, double* P)
 
   // Mise à  jour final : on incrémente le nombre de noeud dans le maillage
   Msh->NbrVer++;
+  int is_successful = msh_neighbors(Msh);
+  if(is_successful!=1){printf("\n\nErreur dans la construction des voisin de Img_comp.\n\n");exit(-1);}
+    
   // printf("\nLe point P = (%f,%f) à été inséré avec succès !\n", P[0], P[1]);
   
+  free(ver_cav);
+  free(bat_cavity);
+  free(node_on_edge);
   return;
 }
 
@@ -1608,8 +1640,8 @@ void write_sol_img(char* path, img* Img)
   return;
 }
 
-// Compression
-img* dummy_comp_img(img* Img, int mod)
+// Compresseur
+img* dummy_comp(img* Img, int mod)
 {
   img* Img_comp = init_from_qube(Img->M->NbrVerMax);
   scale_and_init(Img->M, Img_comp->M);
@@ -1635,7 +1667,7 @@ img* dummy_comp_img(img* Img, int mod)
 
   return Img_comp;
 }
-img* random_comp_img(img* Img, double B)
+img* random_comp(img* Img, double B)
 {
   double para = (0 < B) ? B : -B;
   para = (B < 1) ? B : 0.5;
@@ -1654,9 +1686,31 @@ img* random_comp_img(img* Img, double B)
     is_selected = bernoulli_criterion_comp(para); // 
     if(is_selected == 1)
     { 
-      int is_successful = msh_neighbors(Img_comp->M);
-      if(is_successful!=1){printf("\n\nErreur dans la construction des voisin de Img_comp.\n\n");exit(-1);}
-    
+      insertion(Img_comp->M, P);
+      Img_comp->sol[k] = Img->sol[iVer];
+      k++;
+    }
+    else{continue;}
+  }
+
+  return Img_comp;
+}
+img* gaussian_comp(img* Img, double mu, double sigma, double p)
+{
+  img* Img_comp = init_from_qube(Img->M->NbrVerMax);
+  scale_and_init(Img->M, Img_comp->M);
+  Img_comp->sol = malloc(sizeof(double)*(Img->M->NbrVer+2));
+  for(int i  = 0; i < Img->M->NbrVer+2; i++){Img_comp->sol[i] = 0;} 
+
+  int is_selected = 0, k = 1;
+  double2d P; P[0] = 0; P[1] = 0;
+  
+  for(int iVer = 1; iVer <= Img->M->NbrVer; iVer++)
+  {
+    P[0] = Img->M->Crd[iVer][0]; P[1] = Img->M->Crd[iVer][1];    
+    is_selected = gaussian_crit(mu,sigma, p); // 
+    if(is_selected == 1)
+    { 
       insertion(Img_comp->M, P);
       Img_comp->sol[k] = Img->sol[iVer];
       k++;
@@ -1678,11 +1732,18 @@ img* psnr_comp(img* Img, double target)
   int i_air_max = 4, index_sol = 0; // position du noeud maximisant l'erreur maximale
   double* P = malloc(sizeof(double)*2);
 
+  int k = 1;
   while(qc < target)
   { 
+    double perf0 = 0, perf1 = 0;
     // Trouver le pixel ayant l'EQ la plus forte
+
+    printf("\nIter %d\n", k);
+    k++;
+
     int i = 0;
     air_max = 0; i_air_max = 0; 
+    perf0 = clock();
     for(i = 1; i <= Img->M->NbrVer; i++)
     {
       P[0] = Img->M->Crd[i][0]; P[1] = Img->M->Crd[i][1];
@@ -1692,28 +1753,97 @@ img* psnr_comp(img* Img, double target)
       i_air_max = (air_max < err_temp) ? i : i_air_max;
       air_max = (air_max < err_temp) ? err_temp : air_max;
     } 
+    perf1 = clock();
+    printf("Perf EQM Max : %lg\n",(perf1-perf0)/CLOCKS_PER_SEC);
 
     // Mettre à jour l'image compressée
     P[0] = Img->M->Crd[i_air_max][0]; P[1] = Img->M->Crd[i_air_max][1];
+    
+    // Mettre à jour l'image compressée
+    perf0 = clock();
     insertion(Img_comp->M, P);
-    msh_neighbors(Img_comp->M);
+    perf1 = clock();
+    printf("NbrVer_comp : %d\n",Img_comp->M->NbrVer);
+    printf("Insertion perf : %lg\n", (perf1-perf0)/CLOCKS_PER_SEC);
+
     Img_comp->sol[index_sol+5] = Img->sol[i_air_max];
     index_sol++;
 
-    printf("\ntarget - psnr : %f", target - qc);
+    //printf("\ntarget - psnr : %f", target - qc);
+    perf0 = clock();
     qc = psnr(Img, Img_comp);
+    perf1 = clock();
+    printf("PSNR perf : %lg\n", (perf1-perf0)/CLOCKS_PER_SEC);
+  }
+
+  free(P);
+  return Img_comp;
+}
+img* psnr_comp_opt(img* Img, double target)
+{ 
+  // Initialiser le conteneur de l'image compressée
+  img* Img_comp = init_from_qube(Img->M->NbrVerMax);
+  scale_and_init(Img->M, Img_comp->M);
+
+  // Initialiser le while
+  double qc = psnr(Img, Img_comp);
+  double air_max = 0, err_temp = 0; // erreur maximale enregistrée & erreur à l'échelle d'une étape
+  int i_air_max = 4, index_sol = 0; // position du noeud maximisant l'erreur maximale
+  double* P = malloc(sizeof(double)*2);
+  
+  int k = 1;
+  while(qc < target)
+  { 
+    // Trouver le pixel ayant l'EQ la plus forte
+    double perf0 = 0, perf1 = 0;
+    
+    printf("\nIter %d\n", k);
+    k++;
+
+    int i = 0;
+    air_max = 0; i_air_max = 0;
+    perf0 = clock(); 
+    for(i = 1; i <= Img->M->NbrVer; i++)
+    {
+      P[0] = Img->M->Crd[i][0]; P[1] = Img->M->Crd[i][1];    
+      if(is_in_comp(Img_comp, P) == 1){continue;}  
+
+      err_temp = pow(interpolator(Img_comp, P) - Img->sol[i], 2); 
+      i_air_max = (air_max < err_temp) ? i : i_air_max;
+      air_max = (air_max < err_temp) ? err_temp : air_max;
+    } 
+    perf1 = clock();
+    printf("Perf EQM Max : %lg\n",(perf1-perf0)/CLOCKS_PER_SEC);
+
+    // Mettre à jour l'image compressée
+    P[0] = Img->M->Crd[i_air_max][0]; P[1] = Img->M->Crd[i_air_max][1];
+    
+    perf0 = clock();
+    insertion(Img_comp->M, P);
+    perf1 = clock();
+    printf("NbrVer_comp : %d\n",Img_comp->M->NbrVer);
+    printf("Insertion perf : %lg\n", (perf1-perf0)/CLOCKS_PER_SEC);
+    
+    Img_comp->sol[index_sol+5] = Img->sol[i_air_max];
+    index_sol++;
+
+    //printf("\ntarget - psnr : %f", target - qc);
+
+    perf0 = clock();
+    qc = psnr_opt(Img, Img_comp);
+    perf1 = clock();
+    printf("PSNR perf : %lg\n", (perf1-perf0)/CLOCKS_PER_SEC);
   }
 
   free(P);
   return Img_comp;
 }
 
-
 // Analyse de la qualité de la compression
 double EQM(img* Img_brut, img* Img_comp)
 {
   double qc = 0, uc = 0;
-  for(int i = 1; i < Img_brut->M->NbrVer; i++)
+  for(int i = 1; i <= Img_brut->M->NbrVer; i++)
   {
     if(is_in_comp(Img_comp, Img_brut->M->Crd[i]) == 1){continue;}
     else
@@ -1722,6 +1852,21 @@ double EQM(img* Img_brut, img* Img_comp)
       qc += pow(Img_brut->sol[i]-uc, 2);
     }
   }
+  qc *= 1./(Img_brut->M->NbrVer);
+  return qc;
+}
+double EQM_optimised(img* Img_brut, img* Img_comp)
+{
+  /*
+  EQM sans recherche
+  */
+  double qc = 0, uc = 0;
+  for(int i = 1; i <= Img_brut->M->NbrVer; i++)
+  {
+    uc = interpolator(Img_comp, Img_brut->M->Crd[i]);
+    qc += pow(Img_brut->sol[i]-uc, 2);
+  }
+
   qc *= 1./(Img_brut->M->NbrVer);
   return qc;
 }
@@ -1759,6 +1904,10 @@ int is_in_comp(img* Img, double* P)
 double psnr(img* Img_brut, img* Img_comp)
 {
   return 10*log10(pow(255,2)/EQM(Img_brut, Img_comp));
+}
+double psnr_opt(img* Img_brut, img* Img_comp)
+{
+  return 10*log10(pow(255,2)/EQM_optimised(Img_brut, Img_comp));
 }
 
 // Critères de compression

@@ -2,11 +2,14 @@
 CC=gcc
 COPTS= -g -O0 -Wall
 
-mesh:	mesh.o main_mesh.o eigen.o libmesh6.o
-	$(CC) $(COPTS) -o mesh.exe mesh.o  main_mesh.o eigen.o libmesh6.o -lm
+hsh_table:	mesh.o hsh_table.o eigen.o libmesh6.o
+	$(CC) $(COPTS) -o hsh_table.exe mesh.o  hsh_table.o eigen.o libmesh6.o -lm
 
-comp_test : mesh.o comp_test.o eigen.o libmesh6.o
-	$(CC) $(COPTS) -o comp_test.exe mesh.o comp_test.o eigen.o libmesh6.o -lm
+insertion: mesh.o insertion.o eigen.o libmesh6.o
+	$(CC) $(COPTS) -o insertion.exe mesh.o insertion.o eigen.o libmesh6.o -lm
+
+compression : mesh.o compression.o eigen.o libmesh6.o
+	$(CC) $(COPTS) -o compression.exe mesh.o compression.o eigen.o libmesh6.o -lm
 
 libmesh6.o :	libmesh6.c libmesh6.h
 	$(CC) -c $(COPTS)  -I. libmesh6.c
@@ -17,10 +20,13 @@ mesh.o :	mesh.c mesh.h libmesh6.h
 eigen.o :	eigen.c mesh.h
 	$(CC) -c $(COPTS)  -I. eigen.c
 
-main_mesh.o :	main_mesh.c mesh.h
-	$(CC) -c $(COPTS)  -I. main_mesh.c
+hsh_table.o : hsh_table.c mesh.h
+	$(CC) -c $(COPTS)  -I. hsh_table.c
 
-comp_test.o : comp_test.c mesh.h
-	$(CC) -c $(COPTS)  -I. comp_test.c
+insertion.o : insertion.c mesh.h
+	$(CC) -c $(COPTS)  -I. insertion.c
+
+compression.o : compression.c mesh.h
+	$(CC) -c $(COPTS)  -I. compression.c
 clean :
-	-del /f /q mesh.exe comp_test.exe comp_test.o mesh.o main_mesh.o eigen.o libmesh6.o Joc_comp.sol Joc_comp.mesh
+	-rm -f *.exe *.o *.mesh *.solb *.sol
